@@ -354,9 +354,9 @@ export default function SetupPage() {
                     </div>
                   </div>
                   <h1 className="text-3xl font-bold">
-                    {step === 1 && "Tell us about the role"}
-                    {step === 2 && "Tell us about you"}
-                    {step === 3 && "What's your scenario?"}
+                    {step === 1 && agentConfig.onboarding.step1Title}
+                    {step === 2 && agentConfig.onboarding.step2Title}
+                    {step === 3 && agentConfig.onboarding.step3Title}
                     {step === 4 && "How would you like to practice?"}
                   </h1>
                 </div>
@@ -365,7 +365,7 @@ export default function SetupPage() {
                   {step === 1 && (
                     <div className="space-y-6">
                       <div>
-                        <label className="block text-sm font-medium text-white/60 mb-2">Job Title</label>
+                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.roleLabel}</label>
                         <input
                           type="text"
                           placeholder="e.g. Senior Software Engineer"
@@ -375,7 +375,7 @@ export default function SetupPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-white/60 mb-2">Company Name</label>
+                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.companyLabel}</label>
                         <input
                           type="text"
                           placeholder="e.g. Google, Stripe, etc."
@@ -385,7 +385,7 @@ export default function SetupPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-white/60 mb-2">Job Description (Optional)</label>
+                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.contextDetailLabel}</label>
                         <textarea
                           placeholder={agentConfig.onboarding.jobDescriptionPlaceholder}
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-lg focus:outline-none focus:border-white/30 transition-colors min-h-[200px] resize-none"
@@ -411,7 +411,7 @@ export default function SetupPage() {
                       </div>
 
                       <div className="w-full pt-4">
-                        <label className="block text-sm font-medium text-white/60 mb-2">Upload Resume (PDF, DOCX)</label>
+                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.resumeLabel}</label>
                         <p className="text-[10px] text-white/30 mb-4 uppercase tracking-widest font-bold">Supported formats: PDF, Word, or paste text directly</p>
                         
                         {!formData.resumeFile ? (
@@ -423,7 +423,7 @@ export default function SetupPage() {
                             {isParsing ? (
                               <>
                                 <Loader2 className="w-8 h-8 text-white/20 animate-spin mb-3" />
-                                <span className="text-base font-medium text-white/40">Parsing your resume...</span>
+                                <span className="text-base font-medium text-white/40">{agentConfig.onboarding.documentParsingMessage}</span>
                               </>
                             ) : (
                               <>
@@ -473,9 +473,9 @@ export default function SetupPage() {
                       </p>
 
                       <div className="pt-4">
-                        <label className="block text-sm font-medium text-white/60 mb-2">Or Paste Resume Text</label>
+                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.pasteLabel}</label>
                         <textarea
-                          placeholder="Paste your resume content here..."
+                          placeholder={agentConfig.onboarding.pastePlaceholder}
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-lg focus:outline-none focus:border-white/30 transition-colors min-h-[200px] resize-none"
                           value={formData.resumeText}
                           onChange={(e) => setFormData({ ...formData, resumeText: e.target.value })}

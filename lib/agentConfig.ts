@@ -77,6 +77,15 @@ export const agentConfig = {
       "Almost ready...",
     ],
     startButtonLabel: "Start Coaching",
+    step1Title: "Tell us about the deal",
+    step2Title: "Upload your context",
+    step3Title: "What's your scenario?",
+    roleLabel: "Your Role",
+    companyLabel: "Prospect Company",
+    contextDetailLabel: "Deal Context (Optional)",
+    documentParsingMessage: "Parsing your document...",
+    pasteLabel: "Or Paste Context",
+    pastePlaceholder: "Paste deal notes, account info, or prospect details here...",
   },
 
   coachPage: {
