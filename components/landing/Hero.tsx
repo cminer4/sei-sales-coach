@@ -70,7 +70,7 @@ export default function Hero() {
           </motion.div>
 
           {/* Chat preview mockup – decorative */}
-          <div className="max-w-lg mx-auto mt-12 mb-8">
+          <div className="max-w-2xl mx-auto mt-12 mb-8">
             <p className="text-xs uppercase tracking-widest text-white/40 text-center mb-3">Live Demo Preview</p>
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 space-y-4">
               <div>
@@ -85,15 +85,29 @@ export default function Hero() {
                   They're struggling with long sales cycles and getting executive buy-in...
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-white/40 mb-1">AI Coach</p>
-                <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm text-white/80">
-                  How does your solution specifically address the executive buy-in challenge?
+              <div className="flex items-center justify-center gap-2 py-2">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                <div className="flex gap-1 items-center">
+                  <div className="w-1 h-3 rounded-full bg-white/30" />
+                  <div className="w-1 h-5 rounded-full bg-white/30" />
+                  <div className="w-1 h-8 rounded-full bg-white/30" />
+                  <div className="w-1 h-6 rounded-full bg-white/30" />
+                  <div className="w-1 h-4 rounded-full bg-white/30" />
+                  <div className="w-1 h-7 rounded-full bg-white/30" />
+                  <div className="w-1 h-3 rounded-full bg-white/30" />
                 </div>
+                <span className="text-xs text-white/40 italic">Listening...</span>
               </div>
               <div className="flex items-center justify-center gap-2 pt-2">
                 <Mic className="w-4 h-4 text-white/30" />
-                <span className="text-xs text-white/30">Voice & Text Modes Available</span>
+                <div className="flex gap-0.5 items-end">
+                  <div className="w-0.5 h-2 rounded-full bg-white/30" />
+                  <div className="w-0.5 h-3 rounded-full bg-white/30" />
+                  <div className="w-0.5 h-4 rounded-full bg-white/30" />
+                  <div className="w-0.5 h-3 rounded-full bg-white/30" />
+                  <div className="w-0.5 h-2 rounded-full bg-white/30" />
+                </div>
+                <span className="text-xs text-white/30">Real-time Voice Coaching</span>
               </div>
             </div>
           </div>
