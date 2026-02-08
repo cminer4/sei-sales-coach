@@ -101,7 +101,7 @@ export const agentConfig = {
   landing: {
     hero: {
       badge: "SEI ENTERPRISE AI SOLUTION",
-      headline: "Your Custom AI Sales Coach",
+      headline: "Master Every Sales Pitch",
       subheadline: "An intelligent voice agent trained on your playbooks, CRM data, and product catalog, helping your team practice, prepare, and perform.",
       primaryCta: "Try the Demo",
       secondaryCta: "Contact Us",
