@@ -103,15 +103,15 @@ export const agentConfig = {
   landing: {
     hero: {
       badge: "Enterprise AI Solution",
-      headline: "AI Sales Coaching, Built on Your Data",
-      subheadline: "See how SEI deploys intelligent voice agents trained on your playbooks, CRM data, and sales methodology — ready for your team in weeks, not months.",
+      headline: "Your Custom AI Sales Coach",
+      subheadline: "An intelligent voice agent trained on your playbooks, CRM data, and product catalog — helping your team practice, prepare, and perform.",
       primaryCta: "Try the Demo",
       secondaryCta: "Contact Us",
       secondaryCtaHref: "mailto:cminer@sei.com?subject=SEI%20Sales%20Coach%20Inquiry",
       stats: [
-        { value: "2-4 hrs", label: "To Deploy a New Agent" },
-        { value: "Your Data", label: "Plugged Into Your Systems" },
+        { value: "CRM-Connected", label: "Built on Your Data" },
         { value: "Voice + Text", label: "Dual Interaction Modes" },
+        { value: "Rapid Deployment", label: "Weeks, Not Months" },
       ],
     },
     whatYoullMaster: {
@@ -119,16 +119,16 @@ export const agentConfig = {
       subtitle: "A fully configurable AI agent platform deployed on your proprietary data",
       features: [
         {
-          title: "Your Knowledge, Your Rules",
-          description: "Upload your sales playbooks, objection libraries, and product docs. Control exactly how closely the AI follows each piece of content with granular adherence settings.",
+          title: "Grounded in Your Data",
+          description: "Connect your sales playbooks, product catalogs, pricing guides, and CRM insights. The AI coaches reps using your real competitive positioning, not generic advice.",
         },
         {
-          title: "Voice & Text Interaction",
-          description: "Reps practice real conversations through natural voice or text chat. Powered by ElevenLabs voice AI and Anthropic's Claude for human-quality coaching.",
+          title: "Practice Any Scenario",
+          description: "From discovery calls to upsell conversations to executive pitches — reps rehearse against realistic AI simulations tailored to their accounts and pipeline.",
         },
         {
-          title: "Admin Dashboard & Analytics",
-          description: "Non-technical admins manage the knowledge base, test retrieval accuracy, bulk-import content via CSV, and fine-tune AI behavior — no developers required.",
+          title: "Admin Control & Visibility",
+          description: "Non-technical teams manage content, fine-tune AI behavior, and track usage. Import from Salesforce, CSV, or build directly in the dashboard.",
         },
       ],
     },
