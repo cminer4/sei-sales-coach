@@ -41,7 +41,7 @@ export const agentConfig = {
         label: "Quick Practice",
         duration: "15 minutes",
         stats: "1-2 scenarios",
-        desc: "Focused drill on one skill",
+        desc: "Focused sales pitch",
         use: "Objection handling reps, elevator pitch practice",
       },
       {
@@ -49,7 +49,7 @@ export const agentConfig = {
         label: "Standard Session",
         duration: "30 minutes",
         stats: "2-4 scenarios",
-        desc: "Full coaching session",
+        desc: "Standard coaching session",
         use: "Discovery call prep, demo walkthroughs, pitch refinement",
       },
       {
@@ -57,7 +57,7 @@ export const agentConfig = {
         label: "Deep Dive",
         duration: "60 minutes",
         stats: "Full deal review",
-        desc: "Comprehensive deal strategy",
+        desc: "Full deal review and strategy",
         use: "Enterprise deal prep, executive presentations, complex negotiations",
       },
     ],

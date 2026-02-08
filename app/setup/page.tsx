@@ -61,7 +61,7 @@ export default function SetupPage() {
   }, []);
 
   useEffect(() => {
-    // Cleanup mic if moving away from step 4 or on unmount
+    // Cleanup mic if moving away from step 3 or on unmount
     const cleanup = () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -73,7 +73,7 @@ export default function SetupPage() {
       }
     };
 
-    if (step !== 4) {
+    if (step !== 3) {
       cleanup();
       setMicTestResult(null);
       setIsTestingMic(false);
@@ -343,9 +343,9 @@ export default function SetupPage() {
               >
                 <div className="mb-12">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-semibold uppercase tracking-wider text-gradient-red">Step {step} of 4</span>
+                    <span className="text-sm font-semibold uppercase tracking-wider text-gradient-red">Step {step} of 3</span>
                     <div className="flex gap-2">
-                      {[1, 2, 3, 4].map((s) => (
+                      {[1, 2, 3].map((s) => (
                         <div
                           key={s}
                           className={`w-12 h-1 rounded-full ${
@@ -357,9 +357,8 @@ export default function SetupPage() {
                   </div>
                   <h1 className="text-3xl font-bold">
                     {step === 1 && agentConfig.onboarding.step1Title}
-                    {step === 2 && agentConfig.onboarding.step2Title}
-                    {step === 3 && agentConfig.onboarding.step3Title}
-                    {step === 4 && "How would you like to practice?"}
+                    {step === 2 && agentConfig.onboarding.step3Title}
+                    {step === 3 && "How would you like to practice?"}
                   </h1>
                 </div>
 
@@ -395,12 +394,7 @@ export default function SetupPage() {
                           onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
                         />
                       </div>
-                    </div>
-                  )}
-
-                  {step === 2 && (
-                    <div className="space-y-6">
-                      <div className="pb-8 border-b border-white/5">
+                      <div>
                         <label className="block text-sm font-medium text-white/60 mb-2">What should we call you?</label>
                         <input
                           type="text"
@@ -411,82 +405,10 @@ export default function SetupPage() {
                         />
                         <p className="mt-2 text-xs text-white/40">We'll use this to make the experience feel more personal</p>
                       </div>
-
-                      <div className="w-full pt-4">
-                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.resumeLabel}</label>
-                        <p className="text-[10px] text-white/30 mb-4 uppercase tracking-widest font-bold">Supported formats: PDF, Word, or paste text directly</p>
-                        
-                        {!formData.resumeFile ? (
-                          <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isParsing}
-                            className={`w-full border-2 border-dotted border-white/20 rounded-2xl p-8 flex flex-col items-center hover:bg-white/5 hover:border-white/40 transition-all group ${isParsing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            {isParsing ? (
-                              <>
-                                <Loader2 className="w-8 h-8 text-white/20 animate-spin mb-3" />
-                                <span className="text-base font-medium text-white/40">{agentConfig.onboarding.documentParsingMessage}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-8 h-8 text-white/20 group-hover:text-white/40 mb-3" />
-                                <span className="text-base font-medium text-white/40 group-hover:text-white/60">Choose file or drag and drop</span>
-                              </>
-                            )}
-                            <input
-                              type="file"
-                              ref={fileInputRef}
-                              className="hidden"
-                              accept=".pdf,.docx,.doc,.txt"
-                              onChange={handleFileChange}
-                            />
-                          </button>
-                        ) : (
-                          <div className="w-full bg-white/5 border border-white/20 rounded-xl p-6 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <FileText className="w-8 h-8 text-blue-400" />
-                              <div>
-                                <p className="font-medium text-white line-clamp-1">{formData.resumeFile.name}</p>
-                                <p className="text-sm text-white/40">{(formData.resumeFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => {
-                                setFormData({ ...formData, resumeFile: null, resumeText: '' });
-                                setParseError(null);
-                              }}
-                              className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                            >
-                              <X className="w-5 h-5 text-white/40" />
-                            </button>
-                          </div>
-                        )}
-
-                        {parseError && (
-                          <p className="mt-4 text-sm text-red-400 text-center font-medium bg-red-400/10 py-2 px-4 rounded-lg border border-red-400/20">
-                            {parseError}
-                          </p>
-                        )}
-                      </div>
-
-                      <p className="text-sm text-white/50 italic text-center">
-                        {agentConfig.onboarding.resumeHint}
-                        {' '}It's not saved or stored anywhere.
-                      </p>
-
-                      <div className="pt-4">
-                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.pasteLabel}</label>
-                        <textarea
-                          placeholder={agentConfig.onboarding.pastePlaceholder}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-lg focus:outline-none focus:border-white/30 transition-colors min-h-[200px] resize-none"
-                          value={formData.resumeText}
-                          onChange={(e) => setFormData({ ...formData, resumeText: e.target.value })}
-                        />
-                      </div>
                     </div>
                   )}
 
-                  {step === 3 && (
+                  {step === 2 && (
                     <div className="space-y-8">
                       <div>
                         <label className="block text-sm font-medium text-white/60 mb-4">{agentConfig.onboarding.contextTypeLabel}</label>
@@ -535,7 +457,7 @@ export default function SetupPage() {
                     </div>
                   )}
 
-                  {step === 4 && (
+                  {step === 3 && (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 gap-4">
                         <button
@@ -683,15 +605,14 @@ export default function SetupPage() {
                 </div>
 
                 <div className="pt-8">
-                  {step < 4 ? (
+                  {step < 3 ? (
                     <button
                       onClick={handleNext}
                       disabled={
                         isParsing ||
                         isSyncing ||
                         (step === 1 && (!formData.role || !formData.company)) ||
-                        (step === 2 && !formData.resumeFile && !formData.resumeText) ||
-                        (step === 3 && (!formData.interviewType || !formData.duration))
+                        (step === 2 && (!formData.interviewType || !formData.duration))
                       }
                       className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
