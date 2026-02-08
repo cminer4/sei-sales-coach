@@ -366,10 +366,10 @@ export default function SetupPage() {
                   {step === 1 && (
                     <div className="space-y-6">
                       <div>
-                        <label className="block text-sm font-medium text-white/60 mb-2">{agentConfig.onboarding.roleLabel}</label>
+                        <label className="block text-sm font-medium text-white/60 mb-2">What should we call you?</label>
                         <input
                           type="text"
-                          placeholder="e.g. Senior Software Engineer"
+                          placeholder="e.g. Chris, Alex, Liz, etc..."
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-xl focus:outline-none focus:border-white/30 transition-colors"
                           value={formData.role}
                           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
