@@ -25,7 +25,7 @@ export default function YourPath() {
           className="text-center mb-20"
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Your Path to Hiring Success
+            {agentConfig.landing.yourPath.sectionTitle ?? 'Your Path'}
           </h2>
         </motion.div>
 

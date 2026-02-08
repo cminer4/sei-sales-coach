@@ -15,7 +15,7 @@ export default function FinalCTA() {
         className="max-w-4xl mx-auto text-center"
       >
         <h2 className="text-4xl md:text-5xl font-bold mb-6">
-          Ready to Prepare Like a Pro?
+          {agentConfig.landing.finalCta.headline ?? 'Ready to Get Started?'}
         </h2>
         
         <p className="text-white/70 text-xl mb-10 max-w-2xl mx-auto">
@@ -24,11 +24,16 @@ export default function FinalCTA() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link href="/setup" className="btn-primary">
-            Get Started Now
+            {agentConfig.landing.finalCta.primaryCta ?? 'Get Started'}
           </Link>
-          <Link href="/about" className="text-link text-lg">
-            Questions? Learn More
-          </Link>
+          {agentConfig.landing.finalCta.secondaryCta && agentConfig.landing.finalCta.secondaryCtaHref && (
+            <a
+              href={agentConfig.landing.finalCta.secondaryCtaHref}
+              className="px-8 py-4 rounded-xl border-2 border-white text-white font-semibold hover:bg-white/10 transition-colors"
+            >
+              {agentConfig.landing.finalCta.secondaryCta}
+            </a>
+          )}
         </div>
       </motion.div>
     </section>
