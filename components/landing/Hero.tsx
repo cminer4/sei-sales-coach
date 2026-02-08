@@ -30,7 +30,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-6xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight text-white"
+            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-white"
           >
             {agentConfig.landing.hero.headline}
           </motion.h1>
@@ -54,7 +54,7 @@ export default function Hero() {
           >
             <Link
               href="/setup"
-              className="flex-1 max-w-[240px] text-center bg-gradient-landing-muted text-white px-8 py-4 rounded-xl font-semibold shadow-glow-landing-muted hover:opacity-95 transition-opacity"
+              className="flex-1 max-w-[240px] text-center btn-primary"
             >
               {agentConfig.landing.hero.primaryCta ?? 'Get Started'}
             </Link>
