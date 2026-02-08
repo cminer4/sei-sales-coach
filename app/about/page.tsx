@@ -22,15 +22,15 @@ export default function AboutPage() {
           
           <div className="space-y-8 text-white/80 leading-relaxed text-lg">
             <p className="text-white font-medium text-xl">
-              Most interview advice is generic. Ours comes from 30 years of hands-on hiring.
+              SEI builds and delivers innovative AI solutions that help clients build better businesses.
             </p>
             
             <p>
-              Over three decades, SEI has conducted hundreds of thousands of interviews, developing frameworks that go beyond credentials to identify what truly makes professionals succeed: cultural alignment, executive presence, collaboration, and the drive and humility that define exceptional teammates.
+              Over three decades, SEI has combined deep industry expertise with cutting-edge technology to create tools and platforms that drive real outcomes. We focus on understanding what makes organizations succeed and embedding that knowledge into solutions our clients can use every day.
             </p>
 
             <p>
-              This hiring rigor is why we've earned Consulting Magazine's #1 "Best Firm to Work For" multiple years in a row and built a culture our people genuinely love. We know what interviewers look for because we've been those interviewers, and we've embedded that expertise into this tool.
+              Our commitment to excellence has earned Consulting Magazine's #1 "Best Firm to Work For" multiple years in a row and built a culture our people genuinely love. We bring that same rigor and insight to everything we build.
             </p>
 
             <p>

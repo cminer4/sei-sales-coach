@@ -22,7 +22,7 @@ export default function ContactPage() {
           
           <div className="space-y-12 text-white/80 leading-relaxed text-lg">
             <p>
-              Have questions about the SEI Interview Coach or want to learn more about how we can help your organization? We'd love to hear from you.
+              Have questions about the SEI Sales Agent Platform? We'd love to hear from you.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -51,12 +51,12 @@ export default function ContactPage() {
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
-                <h3 className="text-xl font-bold mb-6 text-white text-center">Ready to Prep?</h3>
+                <h3 className="text-xl font-bold mb-6 text-white text-center">Ready to Get Started?</h3>
                 <p className="text-sm text-white/60 mb-8 text-center">
-                  If you're looking to start your interview practice right now, head back to our setup page.
+                  If you're looking to try the platform right now, head back to our setup page.
                 </p>
                 <Link href="/setup" className="btn-primary w-full block text-center">
-                  Start Your Prep
+                  Get Started
                 </Link>
               </div>
             </div>
