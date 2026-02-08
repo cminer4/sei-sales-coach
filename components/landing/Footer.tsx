@@ -3,7 +3,7 @@ import { agentConfig } from '@/lib/agentConfig';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-sei-red4/30 backdrop-blur-sm">
+    <footer className="border-t border-white/10 bg-black/30 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row gap-12 md:gap-32 mb-12">
           {/* SEI Logo / Brand */}

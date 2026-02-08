@@ -14,7 +14,7 @@ const steps = agentConfig.landing.yourPath.steps.map((s, i) => ({
 
 export default function YourPath() {
   return (
-    <section id="how-it-works" className="py-24 px-6 bg-sei-red4/20">
+    <section id="how-it-works" className="py-24 px-6 bg-black/20">
       <div className="max-w-7xl mx-auto">
         {/* Section header */}
         <motion.div
@@ -24,7 +24,7 @@ export default function YourPath() {
           transition={{ duration: 0.6 }}
           className="text-center mb-20"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
             {agentConfig.landing.yourPath.sectionTitle ?? 'Your Path'}
           </h2>
         </motion.div>
@@ -32,7 +32,7 @@ export default function YourPath() {
         {/* Steps timeline - desktop */}
         <div className="hidden lg:block relative">
           {/* Progress line */}
-          <div className="absolute top-12 left-0 right-0 h-1 bg-gradient-landing opacity-30" />
+          <div className="absolute top-12 left-0 right-0 h-1 bg-gradient-primary opacity-30" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 relative">
             {steps.map((step, index) => (
@@ -45,15 +45,15 @@ export default function YourPath() {
                 className="relative"
               >
                 {/* Number badge */}
-                <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-landing flex items-center justify-center text-3xl font-bold relative z-10">
+                <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-primary flex items-center justify-center text-3xl font-bold relative z-10">
                   <step.icon className="w-10 h-10 text-white" />
-                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-sei-red2 text-sm flex items-center justify-center shadow-lg font-bold">
+                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-plum-dark text-sm flex items-center justify-center shadow-lg">
                     {step.number}
                   </div>
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-bold mb-3 text-center text-white">
+                <h3 className="text-xl font-bold mb-3 text-center">
                   {step.title}
                 </h3>
 
@@ -78,16 +78,16 @@ export default function YourPath() {
               className="flex gap-6"
             >
               {/* Number/Icon badge */}
-              <div className="w-16 h-16 flex-shrink-0 rounded-full bg-gradient-landing flex items-center justify-center relative">
+              <div className="w-16 h-16 flex-shrink-0 rounded-full bg-gradient-primary flex items-center justify-center relative">
                 <step.icon className="w-8 h-8 text-white" />
-                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white text-sei-red2 text-xs flex items-center justify-center font-bold">
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white text-plum-dark text-xs flex items-center justify-center font-bold">
                   {step.number}
                 </div>
               </div>
 
               <div>
                 {/* Title */}
-                <h3 className="text-lg font-bold mb-2 text-white">
+                <h3 className="text-lg font-bold mb-2">
                   {step.title}
                 </h3>
 

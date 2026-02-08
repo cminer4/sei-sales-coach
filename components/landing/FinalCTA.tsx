@@ -6,7 +6,7 @@ import { agentConfig } from '@/lib/agentConfig';
 
 export default function FinalCTA() {
   return (
-    <section className="py-24 px-6 bg-sei-red4/20">
+    <section className="py-24 px-6 bg-black/20">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -14,7 +14,7 @@ export default function FinalCTA() {
         transition={{ duration: 0.6 }}
         className="max-w-4xl mx-auto text-center"
       >
-        <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+        <h2 className="text-4xl md:text-5xl font-bold mb-6">
           {agentConfig.landing.finalCta.headline ?? 'Ready to Get Started?'}
         </h2>
 
@@ -25,7 +25,7 @@ export default function FinalCTA() {
         <div className="flex flex-row gap-4 justify-center items-center flex-wrap">
           <Link
             href="/setup"
-            className="flex-1 max-w-[240px] text-center bg-gradient-landing text-white px-8 py-4 rounded-xl font-semibold shadow-glow-landing hover:opacity-95 transition-opacity"
+            className="flex-1 max-w-[240px] text-center bg-gradient-landing-muted text-white px-8 py-4 rounded-xl font-semibold shadow-glow-landing-muted hover:opacity-95 transition-opacity"
           >
             {agentConfig.landing.finalCta.primaryCta ?? 'Get Started'}
           </Link>

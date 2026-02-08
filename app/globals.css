@@ -64,11 +64,6 @@
   .text-gradient {
     @apply bg-gradient-primary bg-clip-text text-transparent;
   }
-  
-  /* Landing page (enterprise) gradient text – SEI Red 1 to Red 2 */
-  .text-gradient-landing {
-    @apply bg-gradient-landing bg-clip-text text-transparent;
-  }
 }
 
 @layer utilities {
