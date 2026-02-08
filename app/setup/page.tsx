@@ -356,7 +356,7 @@ export default function SetupPage() {
                   <h1 className="text-3xl font-bold">
                     {step === 1 && "Tell us about the role"}
                     {step === 2 && "Tell us about you"}
-                    {step === 3 && "What's the interview format?"}
+                    {step === 3 && "What's your scenario?"}
                     {step === 4 && "How would you like to practice?"}
                   </h1>
                 </div>
