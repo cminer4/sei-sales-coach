@@ -106,10 +106,10 @@ export default function CoachPage() {
     } catch (error) {
       console.error('Failed to fetch objectives:', error);
       setKeyObjectives([
-        'Demonstrate problem-solving',
-        'Showcase technical depth',
-        'Communicate clearly',
-        'Ask insightful questions'
+        'Uncover prospect pain points',
+        'Articulate clear value proposition',
+        'Handle objections confidently',
+        'Ask discovery questions'
       ]);
     } finally {
       setIsLoadingObjectives(false);
@@ -162,7 +162,7 @@ export default function CoachPage() {
         setMessages([{ role: 'ai', text: result.response }]);
       }
     } catch (error) {
-      console.error('Failed to start interview:', error);
+      console.error('Failed to start session:', error);
       setMessages([{ role: 'ai', text: agentConfig.fallbackGreeting }]);
     } finally {
       setIsLoading(false);
@@ -507,7 +507,7 @@ export default function CoachPage() {
                     </div>
                     <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-sm text-blue-400 flex gap-3">
                       <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span>Try to use the STAR method.</span>
+                      <span>Focus on understanding the prospect's pain points and articulating clear value.</span>
                     </div>
                   </div>
                 )}
@@ -544,7 +544,7 @@ export default function CoachPage() {
                       </li>
                     ))
                   ) : (
-                    ['Demonstrate problem-solving', 'Showcase technical depth', 'Communicate clearly', 'Ask insightful questions'].map((obj, i) => (
+                    ['Uncover prospect pain points', 'Articulate clear value proposition', 'Handle objections confidently', 'Ask discovery questions'].map((obj, i) => (
                       <li key={obj} className="flex items-center gap-3 text-sm text-white/70">
                         <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
                         {obj}

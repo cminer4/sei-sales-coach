@@ -26,8 +26,8 @@ export default function ScorecardPage() {
   const [email, setEmail] = useState('');
 
   const scores = [
-    { category: 'Technical Depth', score: 85, icon: Zap, color: 'text-blue-400' },
-    { category: 'Cultural Fit', score: 92, icon: Target, color: 'text-purple-400' },
+    { category: 'Product Knowledge', score: 85, icon: Zap, color: 'text-blue-400' },
+    { category: 'Rapport Building', score: 92, icon: Target, color: 'text-purple-400' },
     { category: 'Communication', score: 78, icon: MessageSquare, color: 'text-green-400' },
     { category: 'Problem Solving', score: 88, icon: Trophy, color: 'text-yellow-400' },
   ];
@@ -61,7 +61,7 @@ export default function ScorecardPage() {
             >
               <Link href="/coach" className="inline-flex items-center text-white/60 hover:text-white mb-12 transition-colors group">
                 <ChevronLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-                Back to Interview
+                Back to Coach
               </Link>
 
               <div className="glass-card p-10 text-center">
@@ -107,9 +107,9 @@ export default function ScorecardPage() {
                 <div className="w-24 h-24 rounded-2xl border-2 border-white/5 animate-pulse" />
                 <Loader2 className="w-12 h-12 text-white absolute inset-0 m-auto animate-spin" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Analyzing your interview...</h2>
+              <h2 className="text-2xl font-bold mb-2">Analyzing your sales conversation...</h2>
               <p className="text-white/60 max-w-xs mx-auto animate-pulse">
-                Our AI is evaluating your technical depth and cultural alignment based on SEI's expert frameworks.
+                Our AI is evaluating your sales technique, discovery skills, and objection handling based on proven sales methodologies.
               </p>
               
               <div className="mt-12 w-64 h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -145,7 +145,7 @@ export default function ScorecardPage() {
                   <span className="text-xs font-bold tracking-widest uppercase text-green-400">Analysis Complete</span>
                 </motion.div>
                 <h1 className="text-5xl font-bold mb-4">{agentConfig.scorecard.title}</h1>
-                <p className="text-xl text-white/60">Excellent work! You demonstrated strong technical alignment.</p>
+                <p className="text-xl text-white/60">Excellent work! You demonstrated strong product knowledge and rapport building.</p>
                 
                 <div className="absolute top-0 right-0 hidden md:block">
                   <button className="btn-secondary py-2 px-6 flex items-center gap-2 text-sm">
@@ -186,9 +186,9 @@ export default function ScorecardPage() {
                   </h3>
                   <ul className="space-y-4">
                     {[
-                      "Strong articulation of technical decisions and trade-offs.",
-                      "Authentic enthusiasm for the company mission and culture.",
-                      "Effective use of the STAR method for behavioral responses."
+                      "Strong articulation of value and product fit.",
+                      "Authentic rapport and focus on prospect needs.",
+                      "Effective use of discovery questions and value selling."
                     ].map((strength, i) => (
                       <li key={i} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 group hover:bg-white/[0.07] transition-colors">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-2 flex-shrink-0" />
@@ -210,9 +210,9 @@ export default function ScorecardPage() {
                   </h3>
                   <ul className="space-y-4">
                     {[
-                      "Be more concise in technical explanations.",
-                      "Ask more clarifying questions early on.",
-                      "Structure project summaries more clearly."
+                      "Be more concise when articulating value.",
+                      "Ask more discovery questions early on.",
+                      "Structure your pitch and next steps more clearly."
                     ].map((area, i) => (
                       <li key={i} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 text-sm group hover:bg-white/[0.07] transition-colors">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
