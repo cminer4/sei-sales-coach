@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Upload, FileText, X, Loader2, Mic, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { agentConfig } from '@/lib/agentConfig';
+import DemoBanner from '@/components/DemoBanner';
 
 export default function SetupPage() {
   const router = useRouter();
@@ -268,6 +269,7 @@ export default function SetupPage() {
 
   return (
     <main className="min-h-screen bg-textured-gradient flex flex-col items-center justify-center px-6 py-20">
+      <DemoBanner />
       <div className="w-full max-w-2xl">
         <div className="flex justify-between items-center mb-12">
           {step === 1 ? (

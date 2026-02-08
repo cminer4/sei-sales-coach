@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, Send, Mic, Info, CheckCircle2, Trophy, MicOff, Loader2, Star, Target, Zap, Users, MessageSquare, Headphones, Keyboard } from 'lucide-react';
 import { VoiceCoach } from '@/components/VoiceCoach';
 import { agentConfig } from '@/lib/agentConfig';
+import DemoBanner from '@/components/DemoBanner';
 
 export default function CoachPage() {
   const [isStarted, setIsStarted] = useState(false);
@@ -301,6 +302,7 @@ export default function CoachPage() {
 
   return (
     <main className="min-h-screen bg-textured-gradient px-6 py-20">
+      <DemoBanner />
       <div className="max-w-7xl mx-auto">
         <header className="flex items-center justify-between mb-16">
           <Link href="/" className="text-2xl font-bold tracking-tighter">

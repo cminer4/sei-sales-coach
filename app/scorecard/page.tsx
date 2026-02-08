@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { agentConfig } from '@/lib/agentConfig';
+import DemoBanner from '@/components/DemoBanner';
 import { 
   ChevronLeft, 
   Trophy, 
@@ -49,6 +50,7 @@ export default function ScorecardPage() {
 
   return (
     <main className="min-h-screen bg-textured-gradient px-6 py-20 flex flex-col items-center">
+      <DemoBanner />
       <div className="w-full max-w-5xl">
         <AnimatePresence mode="wait">
           {state === 'EMAIL_COLLECTION' && (
