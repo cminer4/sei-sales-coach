@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Mic } from 'lucide-react';
 import { agentConfig } from '@/lib/agentConfig';
 
 export default function Hero() {
@@ -67,6 +68,35 @@ export default function Hero() {
               </a>
             )}
           </motion.div>
+
+          {/* Chat preview mockup – decorative */}
+          <div className="max-w-lg mx-auto mt-12 mb-8">
+            <p className="text-xs uppercase tracking-widest text-white/40 text-center mb-3">Live Demo Preview</p>
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 space-y-4">
+              <div>
+                <p className="text-xs text-white/40 mb-1">AI Coach</p>
+                <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm text-white/80">
+                  Tell me about your prospect's main challenge.
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-white/40 mb-1">You</p>
+                <div className="bg-gradient-primary rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] ml-auto text-sm text-white/90">
+                  They're struggling with long sales cycles and getting executive buy-in...
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-white/40 mb-1">AI Coach</p>
+                <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm text-white/80">
+                  How does your solution specifically address the executive buy-in challenge?
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <Mic className="w-4 h-4 text-white/30" />
+                <span className="text-xs text-white/30">Voice & Text Modes Available</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
