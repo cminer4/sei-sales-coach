@@ -2,41 +2,10 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
 import { Mic } from 'lucide-react';
 import { agentConfig } from '@/lib/agentConfig';
 
-const BUBBLE1_TEXT = "Tell me about your prospect's main challenge.";
-const BUBBLE2_TEXT = "How does your solution specifically address the executive buy-in challenge?";
-const TYPING_MS = 30;
-const CYCLE_RESET_S = 8.37; // bubble1 start 0.5 + type 1.56 + user 0.3 + waveform 1s + type 2.01 + pause 3
-
 export default function Hero() {
-  const [chatState, setChatState] = useState({
-    charIndex1: 0,
-    showUserBubble: false,
-    showWaveform: false,
-    charIndex2: 0,
-  });
-  const cycleStartRef = useRef(Date.now());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const elapsed = (Date.now() - cycleStartRef.current) / 1000;
-      if (elapsed >= CYCLE_RESET_S) {
-        cycleStartRef.current = Date.now();
-        setChatState({ charIndex1: 0, showUserBubble: false, showWaveform: false, charIndex2: 0 });
-        return;
-      }
-      const charIndex1 = elapsed >= 0.5 ? Math.min(BUBBLE1_TEXT.length, Math.floor((elapsed - 0.5) / (TYPING_MS / 1000))) : 0;
-      const showUserBubble = elapsed >= 2.06;
-      const showWaveform = elapsed >= 2.36;
-      const charIndex2 = elapsed >= 3.36 ? Math.min(BUBBLE2_TEXT.length, Math.floor((elapsed - 3.36) / (TYPING_MS / 1000))) : 0;
-      setChatState({ charIndex1, showUserBubble, showWaveform, charIndex2 });
-    }, TYPING_MS);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <section className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Background gradient glow */}
@@ -109,28 +78,20 @@ export default function Hero() {
                   <p className="text-xs text-white/40">AI Coach</p>
                 </div>
                 <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm text-white/80 text-left">
-                  {BUBBLE1_TEXT.slice(0, chatState.charIndex1)}
-                  {chatState.charIndex1 > 0 && chatState.charIndex1 < BUBBLE1_TEXT.length && (
-                    <span className="inline-block w-0.5 h-4 ml-0.5 bg-white/80 align-middle animate-pulse" />
-                  )}
+                  Tell me about your prospect's main challenge.
                 </div>
               </div>
-              <motion.div
-                className="text-right"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: chatState.showUserBubble ? 1 : 0 }}
-                transition={{ duration: 0.3 }}
-              >
+              <div className="text-right">
                 <div className="bg-white/15 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[70%] ml-auto text-sm text-white/90">
                   They're struggling with long sales cycles and getting executive buy-in...
                 </div>
-              </motion.div>
-              <motion.div
-                className="flex items-center justify-center gap-2 py-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: chatState.showWaveform ? 1 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              </div>
+              <div className="text-left">
+                <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm text-white/80 text-left">
+                  How does your solution specifically address the executive buy-in challenge?
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2 py-2">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
                 <div className="flex gap-1 items-center">
                   {[3, 5, 8, 6, 4, 7, 3].map((h, index) => (
@@ -142,14 +103,6 @@ export default function Hero() {
                   ))}
                 </div>
                 <span className="text-xs text-white/40 italic">Listening...</span>
-              </motion.div>
-              <div className="text-left">
-                <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm text-white/80 text-left">
-                  {BUBBLE2_TEXT.slice(0, chatState.charIndex2)}
-                  {chatState.charIndex2 > 0 && chatState.charIndex2 < BUBBLE2_TEXT.length && (
-                    <span className="inline-block w-0.5 h-4 ml-0.5 bg-white/80 align-middle animate-pulse" />
-                  )}
-                </div>
               </div>
             </div>
           </div>
