@@ -22,7 +22,7 @@ export default function AboutPage() {
           
           <div className="space-y-8 text-white/80 leading-relaxed text-lg">
             <p className="text-white font-medium text-xl">
-              SEI builds and delivers innovative AI solutions that help clients build better businesses.
+              SEI designs and delivers innovative AI solutions that help clients build better businesses.
             </p>
             
             <p>
