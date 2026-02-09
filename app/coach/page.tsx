@@ -40,7 +40,14 @@ export default function CoachPage() {
   const [timeLeft, setTimeLeft] = useState(15);
 
   const [userMessageCount, setUserMessageCount] = useState(0);
-  const demoEnded = userMessageCount >= 4;
+  const [voiceDemoEnded, setVoiceDemoEnded] = useState(false);
+  const demoEnded = userMessageCount >= 2 || voiceDemoEnded;
+
+  useEffect(() => {
+    if (!isStarted || mode !== 'voice') return;
+    const timer = setTimeout(() => setVoiceDemoEnded(true), 120 * 1000);
+    return () => clearTimeout(timer);
+  }, [isStarted, mode]);
 
   useEffect(() => {
     const data = localStorage.getItem('onboarding-data');
@@ -361,7 +368,7 @@ export default function CoachPage() {
               </AnimatePresence>
 
               <div className={`flex-grow flex items-center justify-center py-12 h-full ${mode === 'voice' ? 'block' : 'hidden'}`}>
-                <VoiceCoach onboardingData={onboardingData} />
+                <VoiceCoach onboardingData={onboardingData} demoEnded={demoEnded} />
               </div>
 
               <div className={`flex flex-col flex-grow ${mode === 'text' ? 'block' : 'hidden'}`}>

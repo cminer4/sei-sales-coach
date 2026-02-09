@@ -153,27 +153,31 @@ export default function SetupPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const mapFormDataToOnboarding = (data: typeof formData, existingSessionId?: string | null) => ({
+    preferredName: data.role,
+    role: 'Sales Rep',
+    company: data.company,
+    resumeText: data.jobDescription || '',
+    interviewType: data.interviewType,
+    duration: data.duration,
+    interactionMode: data.interactionMode,
+    ...(existingSessionId != null && { sessionId: existingSessionId }),
+  });
+
   const syncOnboardingData = async (currentData: any) => {
     setIsSyncing(true);
     try {
+      const payload = mapFormDataToOnboarding(currentData, sessionId);
       const response = await fetch('/api/onboarding/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...currentData,
-          sessionId,
-        }),
+        body: JSON.stringify(payload),
       });
       const result = await response.json();
       if (result.sessionId) {
         setSessionId(result.sessionId);
-        // Also update local storage with the sessionId
-        const localData = JSON.parse(localStorage.getItem('onboarding-data') || '{}');
-        localStorage.setItem('onboarding-data', JSON.stringify({
-          ...localData,
-          ...currentData, // Ensure all current data is saved
-          sessionId: result.sessionId
-        }));
+        const stored = mapFormDataToOnboarding(currentData, result.sessionId);
+        localStorage.setItem('onboarding-data', JSON.stringify(stored));
       }
     } catch (error) {
       console.error('Failed to sync onboarding data:', error);
@@ -203,11 +207,8 @@ export default function SetupPage() {
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
-    // Note: sessionId is already updated in syncOnboardingData
-    localStorage.setItem('onboarding-data', JSON.stringify({
-      ...formData,
-      sessionId
-    }));
+    const stored = mapFormDataToOnboarding(formData, sessionId);
+    localStorage.setItem('onboarding-data', JSON.stringify(stored));
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

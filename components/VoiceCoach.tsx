@@ -7,9 +7,10 @@ import { agentConfig } from '@/lib/agentConfig';
 
 interface VoiceCoachProps {
   onboardingData?: any;
+  demoEnded?: boolean;
 }
 
-export const VoiceCoach = memo(function VoiceCoach({ onboardingData }: VoiceCoachProps) {
+export const VoiceCoach = memo(function VoiceCoach({ onboardingData, demoEnded }: VoiceCoachProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -56,6 +57,13 @@ export const VoiceCoach = memo(function VoiceCoach({ onboardingData }: VoiceCoac
   useEffect(() => {
     console.log('📊 ElevenLabs conversation status changed:', status);
   }, [status]);
+
+  // Disconnect when demo limit reached (e.g. 2 user messages)
+  useEffect(() => {
+    if (demoEnded && status === 'connected') {
+      conversation.endSession();
+    }
+  }, [demoEnded, status, conversation]);
 
   const startConversation = useCallback(async () => {
     if (conversation.status === 'connected' || connectionAttemptRef.current) {
