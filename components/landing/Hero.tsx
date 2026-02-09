@@ -73,7 +73,10 @@ export default function Hero() {
           <div className="max-w-2xl mx-auto mt-8 mb-4">
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 space-y-4">
               <div className="text-left">
-                <p className="text-xs text-white/40 mb-1">AI Coach</p>
+                <div className="flex items-center gap-1 mb-1">
+                  <Mic className="w-3 h-3 text-white/40" />
+                  <p className="text-xs text-white/40">AI Coach</p>
+                </div>
                 <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm text-white/80 text-left">
                   Tell me about your prospect's main challenge.
                 </div>
@@ -100,19 +103,6 @@ export default function Hero() {
                   ))}
                 </div>
                 <span className="text-xs text-white/40 italic">Listening...</span>
-              </div>
-              <div className="flex items-center justify-center gap-2 pt-2">
-                <Mic className="w-4 h-4 text-white/30" />
-                <div className="flex gap-0.5 items-end">
-                  {[2, 3, 4, 3, 2].map((h, index) => (
-                    <div
-                      key={index}
-                      className="w-0.5 rounded-full bg-white/30"
-                      style={{ height: `${h * 0.25}rem`, animation: 'waveform 1.2s ease-in-out infinite', animationDelay: `${index * 0.15}s` }}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-white/30">Real-time Voice Coaching</span>
               </div>
             </div>
           </div>
