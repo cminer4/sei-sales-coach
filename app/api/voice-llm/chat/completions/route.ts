@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== expectedKey) {
+      console.warn('Auth mismatch - received:', authHeader?.substring(0, 20), 'expected starts with:', expectedKey?.substring(0, 10));
       console.warn('Unauthorized request attempt to Custom LLM');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
