@@ -43,7 +43,7 @@ export default function CoachPage() {
 
   useEffect(() => {
     if (!isStarted) return;
-    const timer = setTimeout(() => setDemoEnded(true), 60 * 1000);
+    const timer = setTimeout(() => setDemoEnded(true), 30 * 1000);
     return () => clearTimeout(timer);
   }, [isStarted]);
 
