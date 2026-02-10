@@ -119,7 +119,7 @@ export default function Hero() {
         <div className="max-w-7xl mx-auto px-6 py-16 text-center">
           <div className="mb-8">
             <span className="text-white/60 text-base font-semibold tracking-widest uppercase">
-              Built on Real Experience
+              BUILT FOR YOUR ORGNIZATION
             </span>
           </div>
 

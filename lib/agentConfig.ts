@@ -107,14 +107,14 @@ export const agentConfig = {
       secondaryCta: "Contact Us",
       secondaryCtaHref: "mailto:cminer@sei.com?subject=SEI%20Sales%20Coach%20Inquiry",
       stats: [
-        { value: "CRM Connected", label: "Built on Your Data" },
-        { value: "Voice & Text", label: "Dual Interaction Modes" },
-        { value: "Rapid Deployment", label: "Weeks, Not Months" },
+        { value: "Your Data", label: "Import via CSV or admin dashboard" },
+        { value: "Voice & Text", label: "Realistic coaching in both modes" },
+        { value: "Rapid Deployment", label: "Weeks, not months" },
       ],
     },
     whatYoullMaster: {
       sectionTitle: "What You Get",
-      subtitle: "A fully configurable AI agent platform deployed on your proprietary data",
+      subtitle: "A fully configurable AI agent platform deployed on your data",
       features: [
         {
           title: "Grounded in Your Data",
@@ -126,18 +126,17 @@ export const agentConfig = {
         },
         {
           title: "Admin Control & Visibility",
-          description: "Non-technical teams manage content, fine-tune AI behavior, and track usage. Import from Salesforce, CSV, or build directly in the dashboard.",
+          description: "Teams can manage content, fine-tune AI behavior, and track usage. Import from CSV, or build directly in the dashboard.",
         },
       ],
     },
     yourPath: {
       sectionTitle: "How It Works",
       steps: [
-        { title: "We Configure Your Agent", description: "Define the coaching persona, onboarding flow, and interaction style for your specific use case" },
-        { title: "You Load Your Content", description: "Import your playbooks, frameworks, and training materials via CSV or the admin dashboard" },
-        { title: "Your Team Practices", description: "Reps engage in realistic voice or text coaching sessions grounded in your methodology" },
-        { title: "AI Generates Insights", description: "Scorecards, assessments, and performance data delivered after every session" },
-        { title: "You Iterate & Scale", description: "Update content, adjust AI behavior, and deploy new agents — all without engineering support" },
+        { title: "Configure The Agent", description: "Define coaching persona, onboarding flow, and interaction style for specific use cases" },
+        { title: "Load Content", description: "Import playbooks, frameworks, and training materials via the admin dashboard" },
+        { title: "Teams Practice", description: "Reps engage in realistic voice or text coaching sessions grounded in actual methodology" },
+        { title: "Iterate & Scale", description: "Update custom content and adjust AI behavior with ease" },
       ],
     },
     builtByExperts: {
