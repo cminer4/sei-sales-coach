@@ -110,8 +110,8 @@ export default function TestConsoleTab() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <header className="mb-10">
-          <h1 className="text-3xl font-bold text-plum-dark">RAG Retrieval Test</h1>
-          <p className="text-gray-500 mt-2 font-medium">Test semantic search in both interview directions</p>
+          <h1 className="text-3xl font-bold text-plum-dark">Knowledge Base Testing Dashboard</h1>
+          <p className="text-gray-500 mt-2 font-medium max-w-2xl">Manage and monitor our model&apos;s ability to retrieve relevant documents based on specific questions and answers.</p>
         </header>
 
         {/* Mode Toggle */}

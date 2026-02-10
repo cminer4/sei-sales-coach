@@ -370,22 +370,22 @@ export default function KnowledgeBaseTab() {
           </div>
         )}
 
-        <header className="mb-10 flex items-center justify-between">
-          <div>
+        <header className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-plum-dark">Knowledge Base Dashboard</h1>
             <p className="text-gray-500 mt-2 font-medium">{agentConfig.admin.dashboardSubtitle}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4 flex-shrink-0">
             <button 
               onClick={() => { setIsImportModalOpen(true); setImportResult(null); setImportFile(null); }}
-              className="bg-white border-2 border-plum/20 text-plum-dark px-6 py-3 rounded-xl font-semibold shadow-sm hover:bg-plum/5 hover:border-plum/40 transition-all flex items-center space-x-2"
+              className="bg-white border-2 border-plum/20 text-plum-dark px-6 py-3 rounded-xl font-semibold shadow-sm hover:bg-plum/5 hover:border-plum/40 transition-all flex items-center gap-2 whitespace-nowrap"
             >
               <Upload size={20} />
               <span>Import CSV</span>
             </button>
             <button 
               onClick={openCreateDrawer}
-              className="bg-[#3A2449] text-white px-8 py-3 rounded-xl font-semibold shadow-sm hover:bg-[#2D1B3D] transition-all flex items-center space-x-2"
+              className="bg-[#3A2449] text-white px-8 py-3 rounded-xl font-semibold shadow-sm hover:bg-[#2D1B3D] transition-all flex items-center gap-2 whitespace-nowrap"
             >
               <PlusCircle size={20} />
               <span>Add New</span>

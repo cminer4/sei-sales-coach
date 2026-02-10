@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Database, TestTube, ChevronLeft } from 'lucide-react';
+import { Database, FlaskConical, ChevronLeft } from 'lucide-react';
 import KnowledgeBaseTab from '@/components/admin/KnowledgeBaseTab';
 import TestConsoleTab from '@/components/admin/TestConsoleTab';
 
@@ -11,7 +11,7 @@ type AdminTab = 'kb' | 'test';
 
 const TABS: { id: AdminTab; label: string; icon: typeof Database }[] = [
   { id: 'kb', label: 'Knowledge Base', icon: Database },
-  { id: 'test', label: 'Test Console', icon: TestTube },
+  { id: 'test', label: 'Test Console', icon: FlaskConical },
 ];
 
 function AdminPageContent() {
