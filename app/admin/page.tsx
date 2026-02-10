@@ -45,7 +45,7 @@ function AdminPageContent() {
               Back to app
             </Link>
           </div>
-          <div className="flex gap-1 p-1 bg-plum/5 rounded-xl border border-plum/10 w-fit">
+          <div className="flex gap-1 p-1 bg-plum/5 rounded-xl border border-plum/10 w-fit mb-4">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               return (
