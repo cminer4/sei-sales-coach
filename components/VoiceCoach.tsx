@@ -70,12 +70,12 @@ export const VoiceCoach = memo(function VoiceCoach({ onboardingData, demoEnded }
       console.log('Already connecting or connected, skipping');
       return;
     }
+    connectionAttemptRef.current = true;
 
     try {
       console.log('🚀 Starting ElevenLabs conversation process...');
       setIsConnecting(true);
       setConnectionError(null);
-      connectionAttemptRef.current = true;
 
       // 1. Get signed URL
       const response = await fetch('/api/elevenlabs-signed-url', {
