@@ -70,7 +70,7 @@ export default function TestConsoleTab() {
         filters.stages = [stage];
       } else {
         if (role) filters.roles = [role];
-        // In "Candidate Asks" mode, we might want company context
+        // In "User Asks" mode, we might want company context
         if (company) finalQuery = `${query} at ${company}`;
       }
 
@@ -106,7 +106,7 @@ export default function TestConsoleTab() {
   }, [results]);
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] p-8 text-gray-900">
+    <div className="min-h-screen bg-[#FDFBF7] pt-16 pb-8 px-8 text-gray-900">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <header className="mb-10">
@@ -121,14 +121,14 @@ export default function TestConsoleTab() {
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center space-x-2 ${mode === 'candidate' ? 'bg-plum-dark text-white shadow-md' : 'text-plum/40 hover:text-plum-dark'}`}
           >
             <User size={16} />
-            <span>Candidate Asks Coach</span>
+            <span>User Asks Coach</span>
           </button>
           <button 
             onClick={() => { setMode('coach'); setResults([]); setQuery(''); }}
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center space-x-2 ${mode === 'coach' ? 'bg-plum-dark text-white shadow-md' : 'text-plum/40 hover:text-plum-dark'}`}
           >
             <Bot size={16} />
-            <span>Coach Asks Candidate</span>
+            <span>Coach Asks User</span>
           </button>
         </div>
 
@@ -139,11 +139,11 @@ export default function TestConsoleTab() {
               {mode === 'candidate' ? (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-plum/40 uppercase tracking-widest">Candidate Question</label>
+                    <label className="text-[10px] font-bold text-plum/40 uppercase tracking-widest">Test Question</label>
                     <textarea 
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="e.g., How do I discuss being fired?"
+                      placeholder="e.g., How do I handle pricing objections?"
                       className="w-full h-32 bg-plum/5 border border-plum/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-plum-dark/50 transition-all resize-none font-medium"
                     />
                   </div>
@@ -340,7 +340,7 @@ export default function TestConsoleTab() {
                   <h3 className="text-lg font-bold text-plum-dark">No search results yet</h3>
                   <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto">
                     {mode === 'candidate' 
-                      ? "Enter a candidate's potential question to see what supporting context the coach can find." 
+                      ? "Enter a question to see what supporting context the coach can find." 
                       : "Select a role and stage to see what questions the coach might retrieve."}
                   </p>
                 </div>
@@ -348,12 +348,12 @@ export default function TestConsoleTab() {
                   <p className="text-[10px] font-bold text-plum/20 uppercase tracking-widest mb-2">Try an example</p>
                   <button 
                     onClick={() => {
-                      if (mode === 'candidate') setQuery("How do I talk about leaving my last job?");
+                      if (mode === 'candidate') setQuery("How do I handle pricing objections?");
                       else { setRole('Product Manager'); setStage('EI Round'); setFocusArea('Leadership'); }
                     }}
                     className="text-xs font-bold text-plum/40 hover:text-plum-dark hover:bg-plum/5 py-2 px-4 rounded-xl border border-plum/5 transition-all flex items-center justify-center"
                   >
-                    <span>{mode === 'candidate' ? "How do I talk about leaving..." : "PM • EI Round • Leadership"}</span>
+                    <span>{mode === 'candidate' ? "How do I handle pricing objections?" : "PM • EI Round • Leadership"}</span>
                     <ArrowRight size={12} className="ml-2" />
                   </button>
                 </div>
