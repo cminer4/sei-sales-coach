@@ -106,7 +106,7 @@ export default function TestConsoleTab() {
   }, [results]);
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pt-16 pb-8 px-8 mt-6 text-gray-900">
+    <div className="min-h-screen bg-[#FDFBF7] pt-8 pb-8 px-8 text-gray-900">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <header className="mb-10">
