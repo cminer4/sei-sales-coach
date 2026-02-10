@@ -136,6 +136,7 @@ export const agentConfig = {
         { title: "Configure The Agent", description: "Define coaching persona, onboarding flow, and interaction style for specific use cases" },
         { title: "Load Content", description: "Import playbooks, frameworks, and training materials via the admin dashboard" },
         { title: "Teams Practice", description: "Reps engage in realistic voice or text coaching sessions grounded in actual methodology" },
+        { title: "AI Generates Insights", description: "Scorecards, assessments, and performance data delivered after every session" },
         { title: "Iterate & Scale", description: "Update custom content and adjust AI behavior with ease" },
       ],
     },
