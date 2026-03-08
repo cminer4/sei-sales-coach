@@ -1,31 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { retrieveRelevantContext, RetrievalFilter } from '@/lib/retrieval';
+import { retrieveRelevantContext } from '@/lib/retrieval';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { 
-      query, 
-      filters, 
-      topK = 5, 
-      similarityThreshold = 0.6 
+    const {
+      query,
+      agentId: bodyAgentId,
+      filters,
+      topK = 5,
+      similarityThreshold = 0.6,
     } = body;
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    // Get the default coach
-    const coach = await prisma.coach.findFirst({
-      where: { slug: 'sei-sales-coach' },
-    });
-
-    if (!coach) {
-      return NextResponse.json({ error: 'Coach not found' }, { status: 404 });
+    let agentId = bodyAgentId;
+    if (!agentId) {
+      const agent = await prisma.agent.findFirst({
+        where: { status: 'active' },
+      });
+      if (!agent) {
+        return NextResponse.json({ error: 'No active agent found' }, { status: 404 });
+      }
+      agentId = agent.id;
     }
 
-    const results = await retrieveRelevantContext(query, coach.id, {
+    const results = await retrieveRelevantContext(query, agentId, {
       filters,
       topK,
       similarityThreshold,

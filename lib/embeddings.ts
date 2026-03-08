@@ -92,36 +92,38 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 }
 
 /**
- * Stores chunks and their embeddings in the database for a given document.
- * If embeddings are not provided, they will be generated (singularly).
+ * Stores chunks and their embeddings in knowledge_base_chunks for RAG.
+ * Used when publishing a knowledge base document.
  */
-export async function storeChunks(documentId: string, chunks: string[], embeddings?: number[][]): Promise<void> {
+export async function storeKnowledgeBaseChunks(
+  documentId: string,
+  chunks: string[],
+  embeddings: number[][],
+  agents: string[],
+  category: string
+): Promise<void> {
   try {
-    // 1. Clear existing chunks for this document
-    await prisma.coachChunk.deleteMany({
+    await prisma.knowledgeBaseChunk.deleteMany({
       where: { documentId },
     });
 
-    // 2. Store new chunks
     for (let i = 0; i < chunks.length; i++) {
-      const chunkText = chunks[i];
-      const embedding = embeddings ? embeddings[i] : await generateEmbedding(chunkText);
-
-      // We use $executeRawUnsafe because Prisma doesn't natively support the vector type for inserts/updates yet
-      // unless using special client extensions or raw SQL
+      const embedding = embeddings[i];
       const embeddingSql = `[${embedding.join(',')}]`;
-      
+
       await prisma.$executeRawUnsafe(
-        `INSERT INTO coach_chunks (id, document_id, chunk_text, chunk_index, embedding, created_at)
-         VALUES (gen_random_uuid(), $1::uuid, $2, $3, $4::vector, NOW())`,
+        `INSERT INTO knowledge_base_chunks (id, document_id, content, chunk_index, embedding, agents, category, created_at)
+         VALUES (gen_random_uuid(), $1::uuid, $2, $3, $4::vector, $5::text[], $6, NOW())`,
         documentId,
-        chunkText,
+        chunks[i],
         i,
-        embeddingSql
+        embeddingSql,
+        agents,
+        category
       );
     }
   } catch (error) {
-    console.error('Error storing chunks:', error);
-    throw new Error('Failed to store document chunks');
+    console.error('Error storing knowledge base chunks:', error);
+    throw new Error('Failed to store knowledge base chunks');
   }
 }

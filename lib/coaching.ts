@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import prisma from './prisma';
 import { retrieveRelevantContext } from './retrieval';
 import { getDocumentStrictness, getStrictnessInstruction, getStrictnessLabel } from './strictness';
 import { agentConfig } from './agentConfig';
@@ -44,11 +45,14 @@ export interface CoachResponseParams {
  */
 export async function generateCoachResponse(params: CoachResponseParams) {
   const { userMessage, sessionContext } = params;
-  const { role, company, interviewType, stage, conversationHistory, coachId } = sessionContext;
+  const { role, company, interviewType, stage, conversationHistory } = sessionContext;
 
   try {
+    const agent = await prisma.agent.findFirst({ where: { status: 'active' } });
+    const agentId = agent?.id ?? '';
+
     // 1. Retrieve relevant context from the knowledge base (RAG)
-    const contextResults = await retrieveRelevantContext(userMessage, coachId, {
+    const contextResults = await retrieveRelevantContext(userMessage, agentId, {
       topK: 5,
       similarityThreshold: 0.3, // Slightly lower threshold for broader context
       filters: {}
@@ -147,11 +151,14 @@ export async function generateCoachResponse(params: CoachResponseParams) {
  */
 export async function* streamCoachResponse(params: CoachResponseParams) {
   const { userMessage, sessionContext } = params;
-  const { role, company, interviewType, stage, conversationHistory, coachId } = sessionContext;
+  const { role, company, interviewType, stage, conversationHistory } = sessionContext;
 
   try {
+    const agent = await prisma.agent.findFirst({ where: { status: 'active' } });
+    const agentId = agent?.id ?? '';
+
     // 1. Retrieve relevant context from the knowledge base (RAG)
-    const contextResults = await retrieveRelevantContext(userMessage, coachId, {
+    const contextResults = await retrieveRelevantContext(userMessage, agentId, {
       topK: 5,
       similarityThreshold: 0.3,
       filters: {}

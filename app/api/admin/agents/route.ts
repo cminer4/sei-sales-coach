@@ -1,17 +1,23 @@
-/**
- * GET /api/admin/agents
- * Returns agents where status is 'active' or 'draft' for the Prompt Control tab.
- */
-
 import { NextResponse } from 'next/server';
-import { listAgents } from '@/lib/agents';
+import prisma from '@/lib/prisma';
 
+/**
+ * List all agents (all statuses) for Knowledge Base "Assign to Agents" and filters.
+ */
 export async function GET() {
   try {
-    const agents = await listAgents();
-    return NextResponse.json(agents);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to load agents';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const agents = await prisma.agent.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return NextResponse.json(
+      agents.map((a) => ({
+        id: a.id,
+        name: a.name,
+        status: a.status,
+      }))
+    );
+  } catch (error: any) {
+    console.error('Error fetching agents:', error);
+    return NextResponse.json({ error: 'Failed to fetch agents' }, { status: 500 });
   }
 }

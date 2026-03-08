@@ -21,7 +21,6 @@ model Coach {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   taxonomies        Taxonomy[]
-  documents         CoachDocument[]
   interviewSessions InterviewSession[]
 
   @@map("coaches")
@@ -37,10 +36,9 @@ model Taxonomy {
   metadata     Json     @default("{}")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  coach              Coach              @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  parent             Taxonomy?          @relation("TaxonomyHierarchy", fields: [parentId], references: [id])
-  children           Taxonomy[]         @relation("TaxonomyHierarchy")
-  documentTaxonomies DocumentTaxonomy[]
+  coach    Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  parent   Taxonomy? @relation("TaxonomyHierarchy", fields: [parentId], references: [id])
+  children Taxonomy[] @relation("TaxonomyHierarchy")
 
   @@unique([coachId, taxonomyType, slug])
   @@index([coachId])
@@ -49,57 +47,51 @@ model Taxonomy {
   @@map("taxonomies")
 }
 
-model CoachDocument {
+model Agent {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @map("agent_id") @db.Uuid
+  name         String
+  prompt       String?
+  documentTags String[]  @default([]) @map("document_tags")
+  status       String   @default("draft")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("agents")
+}
+
+model KnowledgeBaseDocument {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  coachId      String   @map("coach_id") @db.Uuid
   title        String
+  description  String?
+  category     String
+  personaType  String?  @map("persona_type")
   content      String
-  documentType String   @map("document_type")
-  status             String   @default("draft")
-  strictnessOverride Int?     @map("strictness_override")
-  metadata           Json     @default("{}")
-  createdBy    String?  @map("created_by")
+  agents       String[]
+  status       String   @default("draft")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  coach              Coach              @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  documentTaxonomies DocumentTaxonomy[]
-  chunks             CoachChunk[]
+  chunks KnowledgeBaseChunk[]
 
-  @@index([coachId])
-  @@index([documentType])
+  @@index([category])
   @@index([status])
-  @@map("coach_documents")
+  @@map("knowledge_base_documents")
 }
 
-model DocumentTaxonomy {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  documentId String   @map("document_id") @db.Uuid
-  taxonomyId String   @map("taxonomy_id") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  document CoachDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  taxonomy Taxonomy      @relation(fields: [taxonomyId], references: [id], onDelete: Cascade)
-
-  @@unique([documentId, taxonomyId])
-  @@index([documentId])
-  @@index([taxonomyId])
-  @@map("document_taxonomies")
-}
-
-model CoachChunk {
+model KnowledgeBaseChunk {
   id         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   documentId String                       @map("document_id") @db.Uuid
-  chunkText  String                       @map("chunk_text")
+  content    String?
   embedding  Unsupported("vector(1536)")?
-  chunkIndex Int                          @map("chunk_index")
-  metadata   Json                         @default("{}")
+  chunkIndex Int?                         @map("chunk_index")
+  agents     String[]
+  category   String?
   createdAt  DateTime                     @default(now()) @map("created_at")
 
-  document CoachDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document KnowledgeBaseDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
-  @@map("coach_chunks")
+  @@map("knowledge_base_chunks")
 }
 
 model InterviewSession {
