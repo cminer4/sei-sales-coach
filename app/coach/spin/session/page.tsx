@@ -2,14 +2,18 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, Send, Mic, Info, CheckCircle2, Trophy, MicOff, Loader2, Star, Target, Zap, Users, MessageSquare, Headphones, Keyboard } from 'lucide-react';
 import { VoiceCoach } from '@/components/VoiceCoach';
 import { agentConfig } from '@/lib/agentConfig';
 import DemoBanner from '@/components/DemoBanner';
 
+const VALID_SESSION_TYPES = ['outreach_15', 'outreach_30', 'discovery_15', 'discovery_30'] as const;
+
 /** SPIN coaching session — copied from app/coach/page.tsx. Links point to SPIN flow only. */
 export default function SpinSessionPage() {
+  const searchParams = useSearchParams();
   const [isStarted, setIsStarted] = useState(false);
   const [mode, setMode] = useState<'text' | 'voice'>('text');
   const [isRecording, setIsRecording] = useState(false);
@@ -47,6 +51,18 @@ export default function SpinSessionPage() {
     const timer = setTimeout(() => setDemoEnded(true), 30 * 1000);
     return () => clearTimeout(timer);
   }, [isStarted]);
+
+  // Persist sessionType for scorecard: from URL or default outreach_15
+  useEffect(() => {
+    const sessionType = searchParams.get('sessionType');
+    const value =
+      sessionType && VALID_SESSION_TYPES.includes(sessionType as (typeof VALID_SESSION_TYPES)[number])
+        ? sessionType
+        : 'outreach_15';
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('spinSessionType', value);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const data = localStorage.getItem('onboarding-data');
