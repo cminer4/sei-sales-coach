@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 /**
- * List all agents (all statuses) for Knowledge Base "Assign to Agents" and filters.
+ * List all agents for admin Prompt Control tab (full shape) and Knowledge Base "Assign to Agents".
  */
 export async function GET() {
   try {
@@ -12,11 +12,15 @@ export async function GET() {
     return NextResponse.json(
       agents.map((a) => ({
         id: a.id,
+        agent_id: a.id,
         name: a.name,
+        prompt: a.prompt,
+        document_tags: a.documentTags,
         status: a.status,
+        created_at: a.createdAt.toISOString(),
       }))
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching agents:', error);
     return NextResponse.json({ error: 'Failed to fetch agents' }, { status: 500 });
   }
