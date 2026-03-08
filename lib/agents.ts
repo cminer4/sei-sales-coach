@@ -34,6 +34,24 @@ function getSupabase(): SupabaseClient {
 }
 
 /**
+ * Returns the system prompt for the active SPIN Sales Coach agent, or null if none.
+ * Used by the score-session API so the scoring system prompt is always from the DB (Prompt Control).
+ */
+export async function getActiveSpinCoachPrompt(): Promise<string | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('agents')
+    .select('prompt')
+    .eq('name', 'SPIN Sales Coach')
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  const prompt = data?.prompt;
+  return typeof prompt === 'string' && prompt.trim() ? prompt : null;
+}
+
+/**
  * List agents that are active or draft (for admin Prompt Control tab).
  */
 export async function listAgents(): Promise<Agent[]> {
