@@ -24,7 +24,7 @@ export default function FinalCTA() {
 
         <div className="flex flex-row gap-4 justify-center items-center flex-wrap">
           <Link
-            href="/setup"
+            href="/coach/spin"
             className="flex-1 max-w-[240px] text-center bg-gradient-primary text-white px-8 py-4 rounded-xl font-semibold shadow-glow hover:opacity-95 transition-opacity"
           >
             {agentConfig.landing.finalCta.primaryCta ?? 'Get Started'}

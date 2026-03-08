@@ -54,7 +54,7 @@ export default function Hero() {
             className="flex flex-row gap-4 justify-center items-center"
           >
             <Link
-              href="/setup"
+              href="/coach/spin"
               className="flex-1 max-w-[240px] text-center btn-primary"
             >
               {agentConfig.landing.hero.primaryCta ?? 'Get Started'}
