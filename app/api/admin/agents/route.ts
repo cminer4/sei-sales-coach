@@ -8,19 +8,27 @@ export async function GET() {
   try {
     const agents = await prisma.agent.findMany({
       orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        prompt: true,
+        documentTags: true,
+        status: true,
+        agentType: true,
+        createdAt: true,
+      },
     });
-    return NextResponse.json(
-      agents.map((a) => ({
-        id: a.id,
-        agent_id: a.id,
-        name: a.name,
-        prompt: a.prompt,
-        document_tags: a.documentTags,
-        status: a.status,
-        agent_type: a.agentType,
-        created_at: a.createdAt.toISOString(),
-      }))
-    );
+    const payload = agents.map((a) => ({
+      id: a.id,
+      agent_id: a.id,
+      name: a.name,
+      prompt: a.prompt ?? null,
+      document_tags: a.documentTags ?? [],
+      status: a.status,
+      agent_type: a.agentType != null ? String(a.agentType) : null,
+      created_at: a.createdAt ? a.createdAt.toISOString() : new Date().toISOString(),
+    }));
+    return NextResponse.json(payload);
   } catch (error: unknown) {
     console.error('Error fetching agents:', error);
     const message = error instanceof Error ? error.message : String(error);

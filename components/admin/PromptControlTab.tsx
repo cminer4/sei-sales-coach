@@ -66,6 +66,9 @@ export default function PromptControlTab() {
           const detail = data && typeof (data as { detail?: string }).detail === 'string' ? (data as { detail: string }).detail : null;
           throw new Error([msg, detail].filter(Boolean).join(' ') || `Could not load agents (${res.status}).`);
         }
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid response: expected an array of agents.');
+        }
         return data as Agent[];
       })
       .then((data: Agent[]) => {
