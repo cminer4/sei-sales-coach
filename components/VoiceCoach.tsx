@@ -98,8 +98,9 @@ export const VoiceCoach = memo(function VoiceCoach({ onboardingData, demoEnded }
       const { signedUrl, sessionId } = await response.json();
       console.log('Voice session context stored with ID:', sessionId);
 
-      // 2. Start conversation with signed URL only (no overrides/dynamicVariables — not supported with signed URL + Custom LLM)
-      await conversation.startSession({ signedUrl });
+      // 2. Start conversation with signed URL only. Pass empty dynamicVariables so the SDK
+      //    doesn't send any custom variables that could mismatch the agent dashboard and cause silent disconnect.
+      await conversation.startSession({ signedUrl, dynamicVariables: {} });
 
     } catch (error: any) {
       console.error('Failed to start voice session:', error);

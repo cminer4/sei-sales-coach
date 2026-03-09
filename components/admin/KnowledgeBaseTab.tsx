@@ -10,6 +10,7 @@ import {
   Database,
   FileText,
   Upload,
+  CheckCircle,
 } from 'lucide-react';
 
 export type KBCategory =
@@ -113,6 +114,8 @@ export default function KnowledgeBaseTab() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drawerScrollRef = React.useRef<HTMLDivElement>(null);
   const contentFileInputRef = useRef<HTMLInputElement>(null);
   const [contentDragOver, setContentDragOver] = useState(false);
@@ -182,7 +185,22 @@ export default function KnowledgeBaseTab() {
     }
   }, [categoryFilter, agentFilter, statusFilter]);
 
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+    };
+  }, []);
+
+  const clearSuccessMessage = () => {
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
+    }
+    setSuccessMessage(null);
+  };
+
   const openCreate = () => {
+    clearSuccessMessage();
     setDrawerMode('create');
     setFormData({
       category: '',
@@ -199,6 +217,7 @@ export default function KnowledgeBaseTab() {
   };
 
   const openEdit = (doc: KBDocumentRecord) => {
+    clearSuccessMessage();
     setDrawerMode('edit');
     setFormData({
       category: doc.category as KBCategory,
@@ -264,6 +283,9 @@ export default function KnowledgeBaseTab() {
       if (!res.ok) {
         throw new Error(typeof data?.error === 'string' ? data.error : 'Failed to save');
       }
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+      setSuccessMessage(status === 'published' ? 'Document published successfully.' : 'Draft saved successfully.');
+      successTimeoutRef.current = setTimeout(clearSuccessMessage, 4000);
       await fetchDocuments();
       closeDrawer();
     } catch (err) {
@@ -309,6 +331,13 @@ export default function KnowledgeBaseTab() {
             Add New Document
           </button>
         </header>
+
+        {successMessage && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl bg-green-50 border border-green-200 px-5 py-3 text-green-800">
+            <CheckCircle size={22} className="shrink-0 text-green-600" />
+            <p className="font-semibold">{successMessage}</p>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
