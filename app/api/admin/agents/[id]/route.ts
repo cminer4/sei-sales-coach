@@ -1,11 +1,11 @@
 /**
  * PATCH /api/admin/agents/[id]
- * Updates an existing agent. Body: { name?, status?, prompt?, document_tags? }
- * Name is required when saving (cannot be blank).
+ * Updates an existing agent. Body: { name?, status?, prompt?, document_tags?, agent_type? }
+ * Name is required when saving (cannot be blank). agent_type must be one of: Guide, Analyst, Builder, Orchestrator.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { updateAgent } from '@/lib/agents';
+import { updateAgent, AGENT_TYPES } from '@/lib/agents';
 
 export async function PATCH(
   _request: NextRequest,
@@ -20,6 +20,7 @@ export async function PATCH(
     status?: string;
     prompt?: string | null;
     document_tags?: string[] | null;
+    agent_type?: string;
   };
   try {
     body = await _request.json();
@@ -39,12 +40,22 @@ export async function PATCH(
       { status: 400 }
     );
   }
+  if (
+    body.agent_type !== undefined &&
+    !AGENT_TYPES.includes(body.agent_type as 'Guide' | 'Analyst' | 'Builder' | 'Orchestrator')
+  ) {
+    return NextResponse.json(
+      { error: `Agent type must be one of: ${AGENT_TYPES.join(', ')}` },
+      { status: 400 }
+    );
+  }
   try {
     const agent = await updateAgent(id, {
       name: body.name,
       status: body.status as 'active' | 'draft' | undefined,
       prompt: body.prompt,
       document_tags: body.document_tags,
+      agent_type: body.agent_type as 'Guide' | 'Analyst' | 'Builder' | 'Orchestrator' | undefined,
     });
     return NextResponse.json(agent);
   } catch (err) {

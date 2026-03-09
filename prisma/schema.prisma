@@ -53,6 +53,7 @@ model Agent {
   prompt       String?
   documentTags String[]  @default([]) @map("document_tags")
   status       String   @default("draft")
+  agentType    String   @default("Guide") @map("agent_type")
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@index([status])

@@ -17,6 +17,7 @@ export async function GET() {
         prompt: a.prompt,
         document_tags: a.documentTags,
         status: a.status,
+        agent_type: a.agentType,
         created_at: a.createdAt.toISOString(),
       }))
     );

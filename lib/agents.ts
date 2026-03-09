@@ -1,12 +1,15 @@
 /**
  * Data access for the agents table (Supabase).
  * Used by admin Prompt Control tab API routes only.
- * Table: agents (agent_id, name, prompt, document_tags, status, created_at)
+ * Table: agents (agent_id, name, prompt, document_tags, status, agent_type, created_at)
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export type AgentStatus = 'active' | 'draft';
+
+export const AGENT_TYPES = ['Guide', 'Analyst', 'Builder', 'Orchestrator'] as const;
+export type AgentType = (typeof AGENT_TYPES)[number];
 
 export type Agent = {
   agent_id: string;
@@ -14,6 +17,7 @@ export type Agent = {
   prompt: string | null;
   document_tags: string[] | null;
   status: string;
+  agent_type: string;
   created_at: string;
 };
 
@@ -22,6 +26,7 @@ export type AgentUpdatePayload = {
   status?: AgentStatus;
   prompt?: string | null;
   document_tags?: string[] | null;
+  agent_type?: AgentType;
 };
 
 function getSupabase(): SupabaseClient {
@@ -89,7 +94,7 @@ export async function listAgents(): Promise<Agent[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('agents')
-    .select('agent_id, name, prompt, document_tags, status, created_at')
+    .select('agent_id, name, prompt, document_tags, status, agent_type, created_at')
     .in('status', ['active', 'draft'])
     .order('name');
   if (error) throw error;
@@ -109,12 +114,16 @@ export async function updateAgent(
   if (payload.status !== undefined && payload.status !== 'active' && payload.status !== 'draft') {
     throw new Error('Status must be active or draft');
   }
+  if (payload.agent_type !== undefined && !AGENT_TYPES.includes(payload.agent_type)) {
+    throw new Error(`Agent type must be one of: ${AGENT_TYPES.join(', ')}`);
+  }
   const supabase = getSupabase();
   const updates: Record<string, unknown> = {};
   if (payload.name !== undefined) updates.name = payload.name.trim();
   if (payload.status !== undefined) updates.status = payload.status;
   if (payload.prompt !== undefined) updates.prompt = payload.prompt;
   if (payload.document_tags !== undefined) updates.document_tags = payload.document_tags;
+  if (payload.agent_type !== undefined) updates.agent_type = payload.agent_type;
   if (Object.keys(updates).length === 0) {
     const { data } = await supabase.from('agents').select('*').eq('agent_id', agentId).single();
     if (!data) throw new Error('Agent not found');
