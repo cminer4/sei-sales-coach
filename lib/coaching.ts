@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import prisma from './prisma';
 import { retrieveRelevantContext } from './retrieval';
+import { logSystemEvent } from './logSystemEvent';
 import { getDocumentStrictness, getStrictnessInstruction, getStrictnessLabel } from './strictness';
 import { agentConfig } from './agentConfig';
 
@@ -171,6 +172,18 @@ export async function* streamCoachResponse(params: CoachResponseParams) {
       similarityThreshold: 0.3,
       filters: {}
     });
+
+    if (contextResults.length === 0) {
+      try {
+        await logSystemEvent({
+          route: '/api/voice-llm/chat/completions',
+          event_type: 'rag_injection_empty',
+          severity: 'warn',
+          message: 'RAG retrieval returned no documents for voice session.',
+          metadata: { agentId, turnCount: conversationHistory.length + 1 },
+        });
+      } catch (_) {}
+    }
 
     // Group context by strictness level
     const groupedContext: Record<string, { instruction: string; level: number; docs: any[] }> = {};

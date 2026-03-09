@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { generateKeyObjectives, generateCoachResponse } from '@/lib/coaching';
+import { logSystemEvent } from '@/lib/logSystemEvent';
 
 export async function POST(req: NextRequest) {
   try {
@@ -82,6 +83,15 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in /api/onboarding/session:', error);
+    try {
+      await logSystemEvent({
+        route: '/api/onboarding/session',
+        event_type: 'onboarding_session_failure',
+        severity: 'error',
+        message: 'Failed to create onboarding session.',
+        metadata: { error: error?.message ?? String(error) },
+      });
+    } catch (_) {}
     return NextResponse.json(
       { error: error.message || 'Failed to process onboarding step' },
       { status: 500 }

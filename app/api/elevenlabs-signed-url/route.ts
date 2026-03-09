@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storeSessionContext } from '@/lib/voiceSessionStore';
+import { logSystemEvent } from '@/lib/logSystemEvent';
 import { randomUUID } from 'crypto';
 
 export async function POST(req: NextRequest) {
@@ -39,9 +40,11 @@ export async function POST(req: NextRequest) {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('ElevenLabs API returned error:', error);
-      throw new Error(`ElevenLabs API error: ${error}`);
+      const errorText = await response.text();
+      console.error('ElevenLabs API returned error:', errorText);
+      const err = new Error(`ElevenLabs API error: ${errorText}`);
+      (err as any).status = response.status;
+      throw err;
     }
 
     const data = await response.json();
@@ -52,6 +55,19 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in /api/elevenlabs-signed-url:', error);
+    try {
+      await logSystemEvent({
+        route: '/api/elevenlabs-signed-url',
+        event_type: 'elevenlabs_signed_url_failure',
+        severity: 'error',
+        message: 'Failed to fetch ElevenLabs signed URL.',
+        metadata: {
+          agentId: process.env.ELEVENLABS_AGENT_ID,
+          status: (error as any).status,
+          error: error?.message ?? String(error),
+        },
+      });
+    } catch (_) {}
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

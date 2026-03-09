@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { streamCoachResponse, Message } from '@/lib/coaching';
+import { logSystemEvent } from '@/lib/logSystemEvent';
 
 export async function GET() {
   return new Response('OK', { status: 200 });
@@ -101,8 +102,17 @@ export async function POST(req: NextRequest) {
           console.log(`Stream finished. Sent ${chunkCount} chunks.`);
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
-        } catch (err) {
+        } catch (err: any) {
           console.error('Streaming error in Custom LLM route:', err);
+          try {
+            await logSystemEvent({
+              route: '/api/voice-llm/chat/completions',
+              event_type: 'voice_llm_failure',
+              severity: 'error',
+              message: 'Voice LLM completion failed.',
+              metadata: { error: err?.message ?? String(err) },
+            });
+          } catch (_) {}
           controller.error(err);
         }
       },
@@ -118,6 +128,15 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in /api/voice-llm:', error);
+    try {
+      await logSystemEvent({
+        route: '/api/voice-llm/chat/completions',
+        event_type: 'voice_llm_failure',
+        severity: 'error',
+        message: 'Voice LLM completion failed.',
+        metadata: { error: error?.message ?? String(error) },
+      });
+    } catch (_) {}
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
