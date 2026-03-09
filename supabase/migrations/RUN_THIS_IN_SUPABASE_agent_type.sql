@@ -24,7 +24,7 @@ COMMENT ON COLUMN agents.agent_type IS 'Agent classification for Prompt Control 
 -- 3. Backfill existing agents (adjust names to match your agents table)
 UPDATE agents
 SET agent_type = 'Guide'
-WHERE name IN ('SPIN Sales Coach', 'AI Assessment Coach');
+WHERE name IN ('SPIN Sales Coach', 'SPIN Sales Agent', 'AI Assessment Coach');
 
 -- 4. Allow null for new agents (so "Create new agent" leaves type unset until assigned)
 ALTER TABLE agents ALTER COLUMN agent_type DROP NOT NULL;

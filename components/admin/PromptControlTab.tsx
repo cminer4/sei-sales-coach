@@ -53,9 +53,20 @@ export default function PromptControlTab() {
   useEffect(() => {
     setError(null);
     fetch('/api/admin/agents')
-      .then((res) => {
-        if (!res.ok) throw new Error('Could not load agents.');
-        return res.json();
+      .then(async (res) => {
+        let data: unknown;
+        try {
+          data = await res.json();
+        } catch {
+          const text = await res.text();
+          throw new Error(res.ok ? 'Invalid response from server.' : `Could not load agents (${res.status}). ${text.slice(0, 200)}`);
+        }
+        if (!res.ok) {
+          const msg = data && typeof (data as { error?: string }).error === 'string' ? (data as { error: string }).error : null;
+          const detail = data && typeof (data as { detail?: string }).detail === 'string' ? (data as { detail: string }).detail : null;
+          throw new Error([msg, detail].filter(Boolean).join(' ') || `Could not load agents (${res.status}).`);
+        }
+        return data as Agent[];
       })
       .then((data: Agent[]) => {
         setAgents(data);
@@ -64,7 +75,7 @@ export default function PromptControlTab() {
         }
       })
       .catch((err) => {
-        setError(err.message || 'Something went wrong');
+        setError(err instanceof Error ? err.message : 'Something went wrong');
       })
       .finally(() => {
         setIsLoading(false);

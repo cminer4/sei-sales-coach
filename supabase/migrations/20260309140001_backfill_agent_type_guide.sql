@@ -3,4 +3,4 @@
 
 UPDATE agents
 SET agent_type = 'Guide'
-WHERE name IN ('SPIN Sales Coach', 'AI Assessment Coach');
+WHERE name IN ('SPIN Sales Coach', 'SPIN Sales Agent', 'AI Assessment Coach');
