@@ -7,8 +7,9 @@ import { Database, Sliders, ChevronLeft, ChevronRight, Activity } from 'lucide-r
 import KnowledgeBaseTab from '@/components/admin/KnowledgeBaseTab';
 import TestConsoleTab from '@/components/admin/TestConsoleTab';
 import PromptControlTab from '@/components/admin/PromptControlTab';
+import SystemHealthTab from '@/components/admin/SystemHealthTab';
 
-type AdminTab = 'kb' | 'test' | 'prompt';
+type AdminTab = 'kb' | 'test' | 'prompt' | 'system-health';
 
 const TOGGLE_TABS: { id: AdminTab; label: string; icon: typeof Database }[] = [
   { id: 'kb', label: 'Knowledge Base', icon: Database },
@@ -18,7 +19,7 @@ const TOGGLE_TABS: { id: AdminTab; label: string; icon: typeof Database }[] = [
 function AdminPageContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as AdminTab | null;
-  const validTab = tabParam === 'kb' || tabParam === 'test' || tabParam === 'prompt' ? tabParam : 'kb';
+  const validTab = (tabParam === 'kb' || tabParam === 'test' || tabParam === 'prompt' || tabParam === 'system-health') ? tabParam : 'kb';
   const [activeTab, setActiveTab] = useState<AdminTab>(validTab);
 
   useEffect(() => {
@@ -79,14 +80,18 @@ function AdminPageContent() {
               Test Console
               <ChevronRight className="w-4 h-4" />
             </button>
-            {/* System Health — permanent link so admins can open anytime */}
-            <Link
-              href="/admin/system-health"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-plum/20 text-plum/60 hover:text-plum-dark hover:border-plum/40 hover:bg-plum/5 text-sm font-bold transition-all"
+            {/* System Health — inline tab, same pattern as Test Console */}
+            <button
+              onClick={() => setTab('system-health')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl border text-sm font-bold transition-all ${
+                activeTab === 'system-health'
+                  ? 'bg-plum-dark text-white border-plum-dark shadow-md'
+                  : 'border-plum/20 text-plum/60 hover:text-plum-dark hover:border-plum/40 hover:bg-plum/5'
+              }`}
             >
               <Activity className="w-4 h-4" />
               System Health
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -96,6 +101,7 @@ function AdminPageContent() {
         {activeTab === 'kb' && <KnowledgeBaseTab />}
         {activeTab === 'test' && <TestConsoleTab />}
         {activeTab === 'prompt' && <PromptControlTab />}
+        {activeTab === 'system-health' && <SystemHealthTab />}
       </div>
     </div>
   );

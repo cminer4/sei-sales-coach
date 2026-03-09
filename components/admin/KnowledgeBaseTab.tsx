@@ -12,7 +12,6 @@ import {
   FileText,
   Upload,
   CheckCircle,
-  Activity,
 } from 'lucide-react';
 
 
@@ -345,7 +344,7 @@ export default function KnowledgeBaseTab() {
           <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
             <p className="font-medium">
               System warning: retrieval issues detected in the last 24 hours.{' '}
-              <Link href="/admin/system-health" className="underline font-semibold hover:text-amber-900">
+              <Link href="/admin?tab=system-health" className="underline font-semibold hover:text-amber-900">
                 View System Health →
               </Link>
             </p>
@@ -367,22 +366,13 @@ export default function KnowledgeBaseTab() {
             <h1 className="text-3xl font-bold text-plum-dark">Knowledge Base</h1>
             <p className="text-gray-500 mt-2 font-medium">Manage documents and assign them to agents for RAG retrieval.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin/system-health"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-plum/30 text-plum-dark font-semibold hover:bg-plum/10 transition-all"
-            >
-              <Activity size={20} />
-              System Health
-            </Link>
-            <button
-              onClick={openCreate}
-              className="bg-[#3A2449] text-white px-8 py-3 rounded-xl font-semibold shadow-sm hover:bg-[#2D1B3D] transition-all flex items-center gap-2 whitespace-nowrap"
-            >
-              <PlusCircle size={20} />
-              Add New Document
-            </button>
-          </div>
+          <button
+            onClick={openCreate}
+            className="bg-[#3A2449] text-white px-8 py-3 rounded-xl font-semibold shadow-sm hover:bg-[#2D1B3D] transition-all flex items-center gap-2 whitespace-nowrap"
+          >
+            <PlusCircle size={20} />
+            Add New Document
+          </button>
         </header>
 
         {successMessage && (

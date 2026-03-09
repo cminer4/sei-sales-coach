@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ChevronLeft, Activity, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 interface SystemEventRow {
   id: string;
@@ -47,7 +46,7 @@ function SeverityBadge({ severity }: { severity: string }) {
   return <span className={`${base} bg-gray-200 text-gray-700`}>info</span>;
 }
 
-export default function SystemHealthPage() {
+export default function SystemHealthTab() {
   const [data, setData] = useState<SystemEventsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,33 +74,8 @@ export default function SystemHealthPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-gray-900">
-      <div className="sticky top-0 z-30 border-b border-plum/10 bg-white/95 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-8 pt-6 pb-4">
-          <div className="flex items-center gap-6 mb-2">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-plum/60 hover:text-plum-dark transition-colors text-sm font-medium"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back to app
-            </Link>
-            <Link
-              href="/admin"
-              className="flex items-center gap-2 text-plum/60 hover:text-plum-dark transition-colors text-sm font-medium"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Admin
-            </Link>
-          </div>
-          <h1 className="text-xl font-bold text-plum-dark flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            System Health
-          </h1>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-8 py-6">
+    <div className="p-8 text-gray-900">
+      <div className="max-w-7xl mx-auto">
         {loading && (
           <p className="text-plum/60">Loading system events…</p>
         )}
