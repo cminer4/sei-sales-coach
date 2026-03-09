@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { agent_type } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { chunkDocument, generateEmbeddings, storeKnowledgeBaseChunks } from '@/lib/embeddings';
 
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
     // SEI-36: Filter by agent type — show docs assigned to that type OR assigned to all agents.
     if (agentType && VALID_AGENT_TYPES.includes(agentType as (typeof VALID_AGENT_TYPES)[number])) {
       const agentsOfType = await prisma.agent.findMany({
-        where: { agentType },
+        where: { agentType: agentType as agent_type },
         select: { id: true },
       });
       const agentIdsOfType = agentsOfType.map((a) => a.id);
