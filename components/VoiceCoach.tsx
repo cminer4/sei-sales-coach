@@ -99,9 +99,7 @@ export const VoiceCoach = memo(function VoiceCoach({ onboardingData, demoEnded, 
       
       const { signedUrl, sessionId, conversationId } = await response.json();
       console.log('Voice session context stored with ID:', sessionId);
-      if (conversationId && onConversationId) {
-        onConversationId(conversationId);
-      }
+      if (onConversationId) onConversationId(conversationId);
 
       // 2. Start conversation with signed URL only. Pass empty dynamicVariables so the SDK
       //    doesn't send any custom variables that could mismatch the agent dashboard and cause silent disconnect.
