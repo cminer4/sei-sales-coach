@@ -1,94 +1,91 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Search, 
-  User, 
-  Bot, 
-  ArrowRight, 
-  ChevronDown, 
-  ChevronUp, 
-  ExternalLink, 
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Search,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
   Loader2,
-  Filter,
-  Layers,
-  Building2,
-  HelpCircle,
   FileText,
-  CheckCircle2,
-  Info
+  BookOpen,
+  UserCircle,
+  Building2,
+  Package,
+  Lightbulb,
+  FolderOpen,
+  ClipboardCheck,
+  Info,
 } from 'lucide-react';
 
-const ROLES = ['Product Manager', 'Software Engineer', 'Designer', 'Data Analyst', 'Engineering Manager'];
-const STAGES = ['Initial Screen', 'EI Round', 'Technical Round', 'Final Interview'];
-const COMPANIES = ['Google', 'Amazon', 'Meta', 'Microsoft', 'Apple', 'Other'];
-const FOCUS_AREAS = ['Leadership', 'Technical', 'Communication', 'Problem Solving'];
-
+/** 7 KB categories from the new schema (lib/retrieval and knowledge_base_documents.category). */
 const DOC_TYPES = [
-  { id: 'question', label: 'Questions', icon: HelpCircle },
-  { id: 'best_practice', label: 'Best Practices', icon: CheckCircle2 },
-  { id: 'company', label: 'Company Insights', icon: Building2 },
-  { id: 'framework', label: 'Frameworks', icon: Layers },
+  { id: 'methodology', label: 'Methodology', icon: BookOpen },
+  { id: 'buyer_persona', label: 'Buyer Persona', icon: UserCircle },
+  { id: 'account_intelligence', label: 'Account Intelligence', icon: Building2 },
+  { id: 'sei_products', label: 'SEI Products', icon: Package },
+  { id: 'sei_capabilities', label: 'SEI Capabilities', icon: Lightbulb },
+  { id: 'case_studies', label: 'Case Studies', icon: FolderOpen },
+  { id: 'evaluation_criteria', label: 'Evaluation Criteria', icon: ClipboardCheck },
 ];
 
+const ALL_DOC_TYPE_IDS = DOC_TYPES.map((t) => t.id);
+
 export default function TestConsoleTab() {
-  const [mode, setMode] = useState<'candidate' | 'coach'>('candidate');
   const [query, setQuery] = useState('');
-  const [role, setRole] = useState('');
-  const [stage, setStage] = useState('');
-  const [company, setCompany] = useState('');
-  const [focusArea, setFocusArea] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['question', 'best_practice', 'company', 'framework']);
-  
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(ALL_DOC_TYPE_IDS);
+  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  useEffect(() => {
+    fetch('/api/admin/agents')
+      .then((res) => res.ok ? res.json() : [])
+      .then((agents: { id: string; status: string }[]) => {
+        const active = Array.isArray(agents) ? agents.find((a) => a.status === 'active') : null;
+        setActiveAgentId(active ? active.id : null);
+      })
+      .catch(() => setActiveAgentId(null));
+  }, []);
+
   const toggleType = (id: string) => {
-    setSelectedTypes(prev => 
-      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+    setSelectedTypes((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
     );
   };
 
   const handleSearch = async () => {
+    if (!query.trim()) return;
     setIsLoading(true);
     setError(null);
     setResults([]);
 
     try {
-      let finalQuery = query;
-      let filters: any = {
-        documentTypes: selectedTypes,
+      const body: { query: string; agentId?: string; filters: { documentTypes: string[] }; topK: number; similarityThreshold: number } = {
+        query: query.trim(),
+        filters: { documentTypes: selectedTypes },
+        topK: 5,
+        similarityThreshold: 0.3,
       };
-
-      if (mode === 'coach') {
-        // Build structured query for "Coach Asks" mode
-        const focusText = focusArea ? ` focusing on ${focusArea}` : '';
-        finalQuery = `${focusArea || 'Interview'} question for a ${role} during ${stage}${focusText}`;
-        filters.roles = [role];
-        filters.stages = [stage];
-      } else {
-        if (role) filters.roles = [role];
-        // In "User Asks" mode, we might want company context
-        if (company) finalQuery = `${query} at ${company}`;
-      }
+      if (activeAgentId) body.agentId = activeAgentId;
 
       const response = await fetch('/api/admin/retrieve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: finalQuery,
-          filters,
-          topK: 5,
-          similarityThreshold: 0.3, // Lower threshold for easier testing
-        }),
+        body: JSON.stringify(body),
       });
 
-      if (!response.ok) throw new Error('Retrieval failed');
-      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error || 'Retrieval failed');
+      }
+
       const data = await response.json();
-      setResults(data);
+      setResults(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -108,118 +105,32 @@ export default function TestConsoleTab() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] p-8 text-gray-900">
       <div className="max-w-7xl mx-auto">
-        {/* Header — match Knowledge Base: same flex, gap-6, title left, two buttons right with gap-4 */}
-        <header className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-plum-dark">Knowledge Base Testing Dashboard</h1>
-            <p className="text-gray-500 mt-2 font-medium max-w-2xl">Manage and monitor our model&apos;s ability to retrieve relevant documents based on specific questions and answers.</p>
-          </div>
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => { setMode('candidate'); setResults([]); setQuery(''); }}
-              className={`rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2 whitespace-nowrap px-6 py-3 ${
-                mode === 'candidate'
-                  ? 'bg-[#3A2449] text-white hover:bg-[#2D1B3D]'
-                  : 'bg-white border-2 border-plum/20 text-plum-dark hover:bg-plum/5 hover:border-plum/40'
-              }`}
-            >
-              <User size={20} />
-              <span>User Asks Coach</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('coach'); setResults([]); setQuery(''); }}
-              className={`rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2 whitespace-nowrap px-8 py-3 ${
-                mode === 'coach'
-                  ? 'bg-[#3A2449] text-white hover:bg-[#2D1B3D]'
-                  : 'bg-white border-2 border-plum/20 text-plum-dark hover:bg-plum/5 hover:border-plum/40'
-              }`}
-            >
-              <Bot size={20} />
-              <span>Coach Asks User</span>
-            </button>
-          </div>
+        <header className="mb-10">
+          <h1 className="text-3xl font-bold text-plum-dark">Knowledge Base Testing Dashboard</h1>
+          <p className="text-gray-500 mt-2 font-medium max-w-2xl">Test retrieval against the current knowledge base. Select document types and run a query; results use the active agent&apos;s assigned documents.</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Search Form */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-2xl border border-plum/10 p-6 shadow-sm space-y-6">
-              {mode === 'candidate' ? (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-plum/40 uppercase tracking-widest">Test Question</label>
-                    <textarea 
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="e.g., How do I handle pricing objections?"
-                      className="w-full h-32 bg-plum/5 border border-plum/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-plum-dark/50 transition-all resize-none font-medium"
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-plum/40 uppercase tracking-widest">Optional Context</label>
-                      <select 
-                        value={role} 
-                        onChange={(e) => setRole(e.target.value)}
-                        className="w-full bg-plum/5 border border-plum/10 rounded-xl px-4 py-2.5 text-sm appearance-none cursor-pointer font-bold text-plum-dark"
-                      >
-                        <option value="">Any Role</option>
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                    </div>
-                    <select 
-                      value={company} 
-                      onChange={(e) => setCompany(e.target.value)}
-                      className="w-full bg-plum/5 border border-plum/10 rounded-xl px-4 py-2.5 text-sm appearance-none cursor-pointer font-bold text-plum-dark"
-                    >
-                      <option value="">Any Company</option>
-                      {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-plum/40 uppercase tracking-widest">Interview Context *</label>
-                      <select 
-                        value={role} 
-                        onChange={(e) => setRole(e.target.value)}
-                        className="w-full bg-plum/5 border border-plum/10 rounded-xl px-4 py-2.5 text-sm font-bold text-plum-dark appearance-none cursor-pointer"
-                      >
-                        <option value="">Select Role</option>
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                    </div>
-                    <select 
-                      value={stage} 
-                      onChange={(e) => setStage(e.target.value)}
-                      className="w-full bg-plum/5 border border-plum/10 rounded-xl px-4 py-2.5 text-sm font-bold text-plum-dark appearance-none cursor-pointer"
-                    >
-                      <option value="">Select Stage</option>
-                      {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <select 
-                      value={focusArea} 
-                      onChange={(e) => setFocusArea(e.target.value)}
-                      className="w-full bg-plum/5 border border-plum/10 rounded-xl px-4 py-2.5 text-sm font-bold text-plum-dark appearance-none cursor-pointer"
-                    >
-                      <option value="">Any Focus Area</option>
-                      {FOCUS_AREAS.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                  </div>
-                </>
-              )}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-plum/40 uppercase tracking-widest">Search query</label>
+                <textarea
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="e.g., How do I handle pricing objections?"
+                  className="w-full h-32 bg-plum/5 border border-plum/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-plum-dark/50 transition-all resize-none font-medium"
+                />
+              </div>
 
               <div className="space-y-3 pt-2">
                 <label className="text-[10px] font-bold text-plum/40 uppercase tracking-widest block">Document Types</label>
                 <div className="grid grid-cols-1 gap-2">
-                  {DOC_TYPES.map(type => (
+                  {DOC_TYPES.map((type) => (
                     <button
                       key={type.id}
+                      type="button"
                       onClick={() => toggleType(type.id)}
                       className={`flex items-center space-x-3 px-4 py-2 rounded-xl border text-xs font-bold transition-all ${
                         selectedTypes.includes(type.id)
@@ -234,13 +145,14 @@ export default function TestConsoleTab() {
                 </div>
               </div>
 
-              <button 
+              <button
+                type="button"
                 onClick={handleSearch}
-                disabled={isLoading || (mode === 'coach' && (!role || !stage)) || (mode === 'candidate' && !query)}
+                disabled={isLoading || !query.trim()}
                 className="w-full bg-plum-dark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-plum transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
-                <span>{mode === 'candidate' ? 'Search Coach Context' : 'Find Relevant Questions'}</span>
+                <span>Search</span>
               </button>
             </div>
           </div>
@@ -279,13 +191,8 @@ export default function TestConsoleTab() {
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center space-x-3">
-                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                            res.documentType === 'question' ? 'bg-green-50 text-green-600 border border-green-100' :
-                            res.documentType === 'company' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                            res.documentType === 'best_practice' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
-                            'bg-plum/5 text-plum border border-plum/10'
-                          }`}>
-                            {res.documentType.replace('_', ' ')}
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-plum/5 text-plum-dark border border-plum/10">
+                            {DOC_TYPES.find((t) => t.id === res.documentType)?.label ?? res.documentType?.replace(/_/g, ' ') ?? '—'}
                           </span>
                           <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
                             res.similarity > 0.8 ? 'bg-green-500 text-white' :
@@ -303,27 +210,6 @@ export default function TestConsoleTab() {
                       <p className={`text-sm text-gray-600 leading-relaxed font-medium ${expandedId === idx ? '' : 'line-clamp-2'}`}>
                         {res.chunkText}
                       </p>
-
-                      {expandedId === idx && mode === 'coach' && res.documentType === 'question' && (
-                        <div className="mt-6 space-y-4 pt-6 border-t border-plum/5">
-                          {res.metadata?.exampleAnswer && (
-                            <div className="space-y-2">
-                              <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Strong Answer Example</span>
-                              <p className="text-sm text-gray-600 italic bg-green-50/50 p-4 rounded-xl border border-green-100">
-                                "{res.metadata.exampleAnswer}"
-                              </p>
-                            </div>
-                          )}
-                          {res.metadata?.whyItsStrong && (
-                            <div className="space-y-2">
-                              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">What We Look For</span>
-                              <p className="text-sm text-gray-600 p-4 rounded-xl bg-blue-50/50 border border-blue-100">
-                                {res.metadata.whyItsStrong}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                     
                     {expandedId === idx && (
@@ -349,21 +235,17 @@ export default function TestConsoleTab() {
                 <div>
                   <h3 className="text-lg font-bold text-plum-dark">No search results yet</h3>
                   <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto">
-                    {mode === 'candidate' 
-                      ? "Enter a question to see what supporting context the coach can find." 
-                      : "Select a role and stage to see what questions the coach might retrieve."}
+                    Enter a query and click Search to see which knowledge base chunks are retrieved for the active agent.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
                   <p className="text-[10px] font-bold text-plum/20 uppercase tracking-widest mb-2">Try an example</p>
-                  <button 
-                    onClick={() => {
-                      if (mode === 'candidate') setQuery("How do I handle pricing objections?");
-                      else { setRole('Product Manager'); setStage('EI Round'); setFocusArea('Leadership'); }
-                    }}
+                  <button
+                    type="button"
+                    onClick={() => setQuery('How do I handle pricing objections?')}
                     className="text-xs font-bold text-plum/40 hover:text-plum-dark hover:bg-plum/5 py-2 px-4 rounded-xl border border-plum/5 transition-all flex items-center justify-center"
                   >
-                    <span>{mode === 'candidate' ? "How do I handle pricing objections?" : "PM • EI Round • Leadership"}</span>
+                    <span>How do I handle pricing objections?</span>
                     <ArrowRight size={12} className="ml-2" />
                   </button>
                 </div>
