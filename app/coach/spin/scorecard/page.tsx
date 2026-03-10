@@ -43,6 +43,23 @@ const SPIN_LABELS: { key: keyof ApiScorecard['scores']; label: string; icon: typ
   { key: 'need_payoff', label: 'Need-Payoff', icon: Trophy },
 ];
 
+/** Overall score as percentage: average of the four dimension scores (each 1–5), then (avg/5)*100. */
+function getOverallScorePercent(scores: ApiScorecard['scores']): number {
+  const dimKeys = ['situation', 'problem', 'implication', 'need_payoff'] as const;
+  let sum = 0;
+  let count = 0;
+  for (const key of dimKeys) {
+    const dim = scores[key];
+    if (dim && typeof dim === 'object' && 'score' in dim && typeof dim.score === 'number') {
+      sum += dim.score;
+      count += 1;
+    }
+  }
+  if (count === 0) return 0;
+  const avg = sum / count;
+  return Math.round((avg / 5) * 100);
+}
+
 /** Count-up from 0 to target percentage over ~600ms for polish (NFR-003). */
 function AnimatedPercentage({ target, duration = 0.6 }: { target: number; duration?: number }) {
   const count = useMotionValue(0);
@@ -314,7 +331,7 @@ export default function SpinScorecardPage() {
                 <div className="text-sm font-medium text-white/60 uppercase tracking-wider mb-2">Overall Score</div>
                 <div className="text-4xl font-bold">
                   <AnimatedPercentage
-                    target={Math.round(((Number(scorecard.scores.overall) || 0) / 5) * 100)}
+                    target={getOverallScorePercent(scorecard.scores)}
                     duration={0.8}
                   />
                 </div>
