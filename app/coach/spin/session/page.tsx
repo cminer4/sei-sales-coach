@@ -228,7 +228,7 @@ function SpinSessionPage() {
     }
   };
 
-  /** Navigate to scorecard. In voice mode with conversation ID, fetch transcript from ElevenLabs first and store in localStorage. Retries once after 2s on 404 or empty transcript. */
+  /** Navigate to scorecard. In voice mode with conversation ID, poll for transcript from ElevenLabs (up to 8 attempts, 2s apart), then store in localStorage. */
   const handleGoToScorecard = async () => {
     console.log('[SPIN] voiceConversationId at end session:', voiceConversationId);
     console.log('[SPIN End Session] voiceConversationId:', voiceConversationId ?? 'null/undefined', mode === 'voice' && (voiceConversationId == null) ? '— ElevenLabs transcript fetch will be skipped.' : '');
@@ -247,16 +247,20 @@ function SpinSessionPage() {
         const transcript = (data.transcript ?? '').trim();
         return { transcript, status: res.status };
       };
+      const maxAttempts = 8;
+      const delayMs = 2000;
       try {
-        let result = await fetchOnce();
-        if (result.status === 404 || !result.transcript) {
-          await new Promise((r) => setTimeout(r, 2000));
+        let result: { transcript: string; status: number } | null = null;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           result = await fetchOnce();
+          if (result.status === 200 && result.transcript) {
+            break;
+          }
+          if (attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, delayMs));
+          }
         }
-        if (result.status !== 200) {
-          throw new Error('Failed to fetch transcript');
-        }
-        if (!result.transcript) {
+        if (!result || result.status !== 200 || !result.transcript) {
           throw new Error('Conversation transcript is not ready yet. Please try again in a moment.');
         }
         console.log('[SPIN transcript] final transcript written to localStorage.spinTranscript — length:', result.transcript.length, '| preview (first 500 chars):', result.transcript.slice(0, 500));

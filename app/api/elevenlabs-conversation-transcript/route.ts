@@ -62,6 +62,9 @@ export async function POST(req: NextRequest) {
     }
 
     const data = JSON.parse(text);
+    if (data.status === 'processing') {
+      return NextResponse.json({ transcript: '' }, { status: 202 });
+    }
     const rawTranscript: TranscriptEntry[] = Array.isArray(data.transcript) ? data.transcript : [];
 
     // Format to match text-mode transcript: "Coach: ... \n\n Rep: ..."
