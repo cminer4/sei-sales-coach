@@ -94,7 +94,7 @@ export const AssessmentVoiceCoach = memo(function AssessmentVoiceCoach({
       console.log('Assessment voice session stored with ID:', sessionId);
       if (onConversationId) onConversationId(conversationId);
 
-      await conversation.startSession({ signedUrl, dynamicVariables: {} });
+      await conversation.startSession({ signedUrl });
 
     } catch (error: any) {
       console.error('Failed to start Assessment voice session:', error);
