@@ -369,20 +369,63 @@ These cause silent WebSocket disconnects with no useful error message:
 | Agent | UUID | ElevenLabs ID |
 |---|---|---|
 | SPIN Sales Coach (Marcus Webb) | `f73fc51c-6544-4278-94e6-0fdf00d766cf` | `agent_3901kgz4a3s5f15vy08c02s2v13c` |
+| AI Assessment & Strategy Agent | `ASSESSMENT_COACH_ID` (env var) | `ELEVENLABS_ASSESSMENT_AGENT_ID` (env var) |
 
 **SPIN Eval Criteria KB doc**: `8a89e77d-45bb-493d-afcb-ee503767ba71`  
 **Supabase pooler host**: `aws-0-us-west-2.pooler.supabase.com` — always use pooler, direct host is unreachable
 
 ---
 
-### Pending Items (as of March 10, 2026)
+### Route Structure
 
-- [ ] Jordan Ellis (AI Assessment Coach) — Cursor prompt written, not built
-- [ ] `/coach → /guide` route rename — Cursor prompt written, not confirmed deployed
-- [ ] Fallback rubric when eval criteria count: 0
-- [ ] System health logging on 3 remaining routes
-- [ ] RAG agentId fix for multi-agent support (`findFirst` → session-scoped)
+| Route | Purpose |
+|---|---|
+| `/coach/*` | Outward-facing client tools (SPIN Sales Coach) |
+| `/guide/*` | Internal SEI tools (Assessment Agent, future agents) |
+
+The `/guide` route structure was created in SEI-37. Do not rename or redirect `/coach` — they serve different audiences.
 
 ---
 
-**Version**: 1.1.0 | **Updated**: 2026-03-10 | **Source**: /bootstrap
+### AI Assessment Agent Architecture (SEI-38)
+
+The Assessment Agent follows the same architecture as SPIN but produces a **learning summary** instead of a scorecard:
+
+- **Onboarding**: `/guide/assessment` — collects name, email, knowledge level
+- **Session**: `/guide/assessment/session` — 5-minute voice/text conversation
+- **Summary**: `/guide/assessment/summary` — 4 learning dimensions + confidence indicator
+- **API**: `/api/assessment-summary` — Claude generates summary from transcript
+
+**Four Learning Dimensions**:
+- Product Knowledge
+- Value Articulation
+- Objection Handling
+- Competitive Positioning
+
+**Confidence Levels**: Building | Developing | Strong
+
+**Environment variables required**:
+- `ASSESSMENT_COACH_ID` — UUID from Supabase agents table
+- `ELEVENLABS_ASSESSMENT_AGENT_ID` — ID from ElevenLabs dashboard
+
+**Manual setup required before feature works**:
+1. Insert agent row in Supabase: `INSERT INTO agents (name, agent_type, business_process, status) VALUES ('AI Assessment & Strategy Agent', 'Guide', 'Sales & BD', 'active');`
+2. Create ElevenLabs agent (blank system prompt)
+3. Add both IDs to `.env.local` and Vercel
+4. Add eval criteria KB doc via `/admin` (category: `evaluation_criteria`, assigned to agent UUID)
+
+---
+
+### Pending Items (as of March 11, 2026)
+
+- [x] ~~Jordan Ellis (AI Assessment Coach)~~ — Built as SEI-38 (pending manual setup)
+- [x] ~~`/guide` route structure~~ — Created in SEI-37, coexists with `/coach`
+- [ ] Fallback rubric when eval criteria count: 0 — Implemented for Assessment, pending for SPIN
+- [ ] System health logging on 3 remaining routes
+- [ ] RAG agentId fix for multi-agent support (`findFirst` → session-scoped)
+- [ ] Assessment Agent manual setup (Supabase + ElevenLabs + env vars)
+- [ ] Assessment eval criteria KB document
+
+---
+
+**Version**: 1.2.0 | **Updated**: 2026-03-11 | **Source**: /bootstrap
