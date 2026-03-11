@@ -67,9 +67,10 @@ export async function POST(req: NextRequest) {
     // Try to get stored session context (from signed URL creation)
     const { getLatestSessionContext } = await import('@/lib/voiceSessionStore');
     const storedContext = await getLatestSessionContext();
+    console.log('[Voice LLM] storedContext:', JSON.stringify(storedContext));
     
     if (storedContext) {
-      console.log('[Voice LLM] Found stored context:', JSON.stringify(storedContext, null, 2));
+      console.log('[Voice LLM] Found stored context');
     } else {
       console.log('[Voice LLM] No stored context found, using dynamic variables');
     }
