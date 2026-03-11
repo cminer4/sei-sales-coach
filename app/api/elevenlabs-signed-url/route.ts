@@ -5,16 +5,24 @@ import { randomUUID } from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
-    const agentId = process.env.ELEVENLABS_AGENT_ID;
+    // Parse the body to get onboarding context and agent type
+    const body = await req.json().catch(() => ({}));
+    
+    // Select agent ID based on agent_type parameter
+    const isAssessmentAgent = body.agent_type === 'assessment';
+    const agentId = isAssessmentAgent 
+      ? process.env.ELEVENLABS_ASSESSMENT_AGENT_ID 
+      : process.env.ELEVENLABS_AGENT_ID;
     const apiKey = process.env.ELEVENLABS_API_KEY;
 
+    console.log('[Assessment] Agent type requested:', body.agent_type ?? 'spin (default)');
+    console.log('[Assessment] ElevenLabs agent ID:', agentId ?? '(NOT SET)');
+
     if (!agentId || !apiKey) {
-      console.error('Missing ElevenLabs credentials in environment');
+      console.error('Missing ElevenLabs credentials in environment. agentId:', agentId, 'apiKey:', apiKey ? '(set)' : '(not set)');
       return NextResponse.json({ error: 'Missing ElevenLabs credentials' }, { status: 500 });
     }
 
-    // Parse the body to get onboarding context
-    const body = await req.json().catch(() => ({}));
     const sessionId = randomUUID();
 
     // Store the context in memory, keyed by sessionId
