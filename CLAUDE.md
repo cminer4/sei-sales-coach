@@ -371,6 +371,20 @@ Currently wired into `/api/score-session` only. Pending: add to `/api/elevenlabs
 3. Confirm `agent_type` is passed in the signed URL request body
 4. Confirm the corresponding env var is set in both `.env.local` and Vercel
 5. Check Vercel function logs after first connection attempt to confirm correct agent ID is resolving
+6. **Set the Custom LLM API Key** in ElevenLabs (see below)
+
+**Custom LLM — 401 Unauthorized on Every Turn**
+
+When a new ElevenLabs agent is created, the Custom LLM API Key must be set manually or every request to `/api/voice-llm/chat/completions` will return 401 and ElevenLabs will drop the connection after the first user turn.
+
+| Step | Action |
+|------|--------|
+| 1 | Go to Agent tab → LLM section → API Key |
+| 2 | Switch from "None" to "Bearer Token" |
+| 3 | Paste the secret stored in `INTERVIEW_COACH_CUSTOM_LLM_API_KEY` |
+| 4 | This secret must match what `/api/voice-llm/chat/completions` validates against |
+
+Check an existing working agent (e.g. Marcus Webb / SPIN Sales Coach) in ElevenLabs to confirm the correct value if unsure.
 
 ---
 
