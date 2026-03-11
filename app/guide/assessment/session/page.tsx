@@ -413,13 +413,16 @@ function AssessmentSessionPage() {
               </ul>
             </motion.div>
 
-            <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
-              {isStarted ? (
+            {demoEnded && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <button
                   type="button"
                   onClick={handleGoToSummary}
                   disabled={isFetchingTranscript}
-                  className={`btn-primary w-full py-4 px-6 text-center block shadow-glow transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed ${demoEnded ? 'ring-2 ring-white/40 ring-offset-2 ring-offset-transparent' : ''}`}
+                  className="btn-primary w-full py-4 px-6 text-center block shadow-glow transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed ring-2 ring-white/40 ring-offset-2 ring-offset-transparent"
                 >
                   {isFetchingTranscript ? (
                     <>
@@ -430,12 +433,8 @@ function AssessmentSessionPage() {
                     'View Learning Summary'
                   )}
                 </button>
-              ) : (
-                <div className="w-full py-4 px-6 text-center block bg-white/5 border border-white/10 rounded-xl text-white/20 cursor-not-allowed font-semibold">
-                  View Learning Summary
-                </div>
-              )}
-            </motion.div>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
