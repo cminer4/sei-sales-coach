@@ -73,6 +73,10 @@ export async function POST(req: NextRequest) {
       console.log('No stored context found, using dynamic variables');
     }
 
+    // Resolve agentId — prefer stored context, fall back to hardcoded SPIN coach
+    const agentId = storedContext?.agentId || 'f73fc51c-6544-4278-94e6-0fdf00d766cf';
+    console.log('[Voice LLM] Using agentId:', agentId);
+
     // Extract context — prefer stored context, fall back to dynamic variables
     const sessionContext = {
       role: storedContext?.role || dynamic_variables?.target_role || 'Software Engineer',
@@ -80,7 +84,7 @@ export async function POST(req: NextRequest) {
       interviewType: storedContext?.interviewType || 'Technical',
       stage: 'Initial',
       conversationHistory,
-      coachId: '237f7015-e905-4cd7-ab52-5020e0909e9c',
+      coachId: agentId,
       preferredName: storedContext?.preferredName || dynamic_variables?.user_name || '',
       resumeText: storedContext?.resumeText || '',
     };
