@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       ),
     ]);
 
-    const textBlocks = response.content.filter((c): c is { type: 'text'; text: string } => c.type === 'text');
+    const textBlocks = response.content.filter((c) => c.type === 'text') as Array<{ type: 'text'; text: string }>;
     const brief = textBlocks.map((b) => b.text).join('\n\n').trim();
     if (!brief) {
       return NextResponse.json(
