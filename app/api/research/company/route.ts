@@ -2,14 +2,14 @@
  * POST /api/research/company
  * SEI-39: Company research for live research feature.
  * Accepts { companyName: string }, uses Anthropic with web_search to produce a 150-200 word brief.
- * Returns { companyName, brief, retrievedAt }. Times out after 15s; returns 500 on failure or timeout.
+ * Returns { companyName, brief, retrievedAt }. Times out after 40s; returns 500 on failure or timeout.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
 const MODEL = 'claude-sonnet-4-20250514';
-const TIMEOUT_MS = 15_000;
+const TIMEOUT_MS = 40_000;
 
 const SYSTEM_PROMPT = `You are a research assistant. Use web search to find current, factual information about the company you are given.
 
