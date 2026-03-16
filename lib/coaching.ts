@@ -244,7 +244,11 @@ export async function* streamCoachResponse(params: CoachResponseParams) {
       .join('\n\n');
 
     // 2. Prepare the prompt
-    const systemPrompt = `The user's preferred name is ${sessionContext.preferredName || agentConfig.userNoun}. 
+    const SPIN_COACH_ID = 'f73fc51c-6544-4278-94e6-0fdf00d766cf';
+    const isSpinCoach = sessionContext.coachId === SPIN_COACH_ID;
+
+    const systemPrompt = isSpinCoach
+      ? `The user's preferred name is ${sessionContext.preferredName || agentConfig.userNoun}. 
     Use this name throughout the conversation to create a warm, personal experience.
 
     ${agentConfig.persona}
@@ -266,7 +270,26 @@ export async function* streamCoachResponse(params: CoachResponseParams) {
     ${contextText || `No specific knowledge base context found for this query. Use your general expertise as a ${agentConfig.orgName} coach.`}
     
     INSTRUCTIONS:
-    - ${agentConfig.systemInstructions.join('\n    - ')}`;
+    - ${agentConfig.systemInstructions.join('\n    - ')}`
+      : (() => {
+          const basePrompt = (agent?.prompt ?? '').trim();
+          if (!basePrompt) {
+            console.warn(
+              '[coaching] missing agent.prompt for non-SPIN agent, falling back to generic prompt. agentId:',
+              agent?.id
+            );
+          }
+
+          const genericPrompt =
+            `You are an AI coach.\n` +
+            `Use the user's preferred name when available and be concise, specific, and helpful.\n`;
+
+          return `${basePrompt || genericPrompt}\n\n` +
+            `USER CONTEXT:\n` +
+            `Preferred name: ${sessionContext.preferredName || ''}\n\n` +
+            `BACKGROUND:\n${sessionContext.resumeText ? sessionContext.resumeText : 'No background provided'}\n\n` +
+            `KNOWLEDGE BASE CONTEXT:\n${contextText || 'No specific knowledge base context found for this query.'}`;
+        })();
 
     // 3. Format history for Claude
     const messages: Anthropic.MessageParam[] = conversationHistory.map(msg => ({
