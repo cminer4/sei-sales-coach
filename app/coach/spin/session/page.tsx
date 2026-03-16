@@ -733,8 +733,8 @@ function SpinSessionPage() {
                   <button
                     type="button"
                     onClick={handleGoToScorecard}
-                    disabled={isFetchingTranscript}
-                    className={`btn-primary w-full py-4 px-6 text-center block shadow-glow transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed ${demoEnded ? 'ring-2 ring-white/40 ring-offset-2 ring-offset-transparent' : ''}`}
+                    disabled={!demoEnded || isFetchingTranscript}
+                    className={`btn-primary w-full py-4 px-6 text-center block transition-all disabled:opacity-50 disabled:cursor-not-allowed ${demoEnded ? 'shadow-glow hover:scale-[1.02] ring-2 ring-white/40 ring-offset-2 ring-offset-transparent' : ''}`}
                   >
                     {isFetchingTranscript ? (
                       <>
@@ -742,20 +742,26 @@ function SpinSessionPage() {
                         Loading transcript…
                       </>
                     ) : (
-                      agentConfig.coachPage.endSessionLabel
+                      'Generate Scorecard'
                     )}
                   </button>
                 ) : (
-                  <Link
-                    href="/coach/spin/scorecard"
-                    className={`btn-primary w-full py-4 px-6 text-center block shadow-glow transition-all hover:scale-[1.02] ${demoEnded ? 'ring-2 ring-white/40 ring-offset-2 ring-offset-transparent' : ''}`}
-                  >
-                    {agentConfig.coachPage.endSessionLabel}
-                  </Link>
+                  demoEnded ? (
+                    <Link
+                      href="/coach/spin/scorecard"
+                      className="btn-primary w-full py-4 px-6 text-center block shadow-glow transition-all hover:scale-[1.02] ring-2 ring-white/40 ring-offset-2 ring-offset-transparent"
+                    >
+                      Generate Scorecard
+                    </Link>
+                  ) : (
+                    <div className="w-full py-4 px-6 text-center block bg-white/5 border border-white/10 rounded-xl text-white/20 cursor-not-allowed font-semibold">
+                      Generate Scorecard
+                    </div>
+                  )
                 )
               ) : (
                 <div className="w-full py-4 px-6 text-center block bg-white/5 border border-white/10 rounded-xl text-white/20 cursor-not-allowed font-semibold">
-                  {agentConfig.coachPage.endSessionLabel}
+                  Generate Scorecard
                 </div>
               )}
             </motion.div>
