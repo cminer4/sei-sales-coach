@@ -233,6 +233,12 @@ function SpinSessionPage() {
     console.log('[SPIN] voiceConversationId at end session:', voiceConversationId);
     console.log('[SPIN End Session] voiceConversationId:', voiceConversationId ?? 'null/undefined', mode === 'voice' && (voiceConversationId == null) ? '— ElevenLabs transcript fetch will be skipped.' : '');
     if (mode === 'voice' && voiceConversationId) {
+      // Ensure the voice session is ended before fetching transcript.
+      // We don't have direct access to the ElevenLabs conversation object here, but `VoiceCoach`
+      // will call `conversation.endSession()` when `demoEnded` flips to true.
+      if (!demoEnded) setDemoEnded(true);
+      await new Promise((r) => setTimeout(r, 1500));
+
       setIsFetchingTranscript(true);
       setTranscriptLoadingMessageIndex(0);
       const fetchOnce = async (): Promise<{ transcript: string; status: number }> => {
