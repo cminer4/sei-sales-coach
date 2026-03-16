@@ -84,10 +84,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cleanBrief = brief.replace(/\n{2,}/g, ' ').replace(/\n/g, ' ').trim();
     const retrievedAt = new Date().toISOString();
     return NextResponse.json({
       companyName,
-      brief,
+      brief: cleanBrief,
       retrievedAt,
     });
   } catch (err) {
