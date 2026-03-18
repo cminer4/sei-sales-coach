@@ -8,12 +8,14 @@ interface AssessmentVoiceCoachProps {
   onboardingData?: any;
   demoEnded?: boolean;
   onConversationId?: (conversationId: string) => void;
+  onEndSession?: () => void;
 }
 
 export const AssessmentVoiceCoach = memo(function AssessmentVoiceCoach({ 
   onboardingData, 
   demoEnded, 
-  onConversationId 
+  onConversationId,
+  onEndSession,
 }: AssessmentVoiceCoachProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -106,7 +108,8 @@ export const AssessmentVoiceCoach = memo(function AssessmentVoiceCoach({
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
-  }, [conversation]);
+    onEndSession?.();
+  }, [conversation, onEndSession]);
 
   const toggleMute = useCallback(() => {
     setIsMuted(!isMuted);

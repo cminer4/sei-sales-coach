@@ -252,7 +252,7 @@ function AssessmentSessionPage() {
                 <div className="bg-[#2A1C30] border border-white/20 rounded-2xl p-8 text-center max-w-md w-full shadow-2xl">
                   <h2 className="text-2xl font-bold text-white mb-4">Session Complete</h2>
                   <p className="text-white/80 text-sm mb-6">
-                    Great learning session! Let's see how you did and what areas you can continue to develop.
+                    Great learning session! Let&apos;s see how you did and what areas you can continue to develop.
                   </p>
                   <button
                     type="button"
@@ -297,6 +297,7 @@ function AssessmentSessionPage() {
                   onboardingData={onboardingData}
                   demoEnded={demoEnded}
                   onConversationId={(id) => setVoiceConversationId(id)}
+                  onEndSession={() => setDemoEnded(true)}
                 />
               </div>
 
