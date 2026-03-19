@@ -280,6 +280,21 @@ The session timer auto-end should also call `endSession()` explicitly before tri
 
 ---
 
+### Assessment Agent — View Learning Summary Button
+
+The "View Learning Summary" button visibility is controlled by `demoEnded` state.
+- Timer end (5 min) → sets `demoEnded = true` automatically
+- Manual end → `AssessmentVoiceCoach` calls `onEndSession()` → sets `demoEnded = true`
+
+`handleGoToSummary` calls the registered `endSessionFnRef` before transcript polling,
+then waits 1500ms to give ElevenLabs time to finalize the transcript.
+
+`registerEndSession` prop on `AssessmentVoiceCoach` is how the page gets access
+to `conversation.endSession()` — the conversation object lives inside the component
+and cannot be accessed directly from the page.
+
+---
+
 ### Voice Transcript Pipeline
 
 After session ends, transcript is fetched from ElevenLabs and written to `localStorage.spinTranscript`.
@@ -365,7 +380,7 @@ A per-agent live research feature is partially built.
 
 ---
 
-## Pending Items (as of March 16, 2026)
+## Pending Items (as of March 19, 2026)
 
 - [ ] Wire live research into session flow for geopolitical agent
 - [ ] Fallback rubric for SPIN when eval criteria count: 0
@@ -373,6 +388,7 @@ A per-agent live research feature is partially built.
 - [ ] Remove debug logging from voice LLM pipeline
 - [ ] Fix `live_research_enabled` not returned by agents GET endpoint on reload
 - [ ] Build geopolitical analysis agent (next major feature)
+- [x] Assessment session end — View Learning Summary button now appears immediately on End Session; endSession called before transcript polling
 
 ---
 
@@ -386,4 +402,4 @@ A per-agent live research feature is partially built.
 
 ---
 
-**Version**: 1.3.0 | **Updated**: 2026-03-16 | **Source**: /bootstrap
+**Version**: 1.3.1 | **Updated**: 2026-03-19 | **Source**: /bootstrap
