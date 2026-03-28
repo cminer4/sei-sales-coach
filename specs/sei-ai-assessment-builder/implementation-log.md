@@ -72,3 +72,34 @@
 ### Follow-ups
 
 - Draft generation, contenteditable canvas, SEI Guide messages, publish overlay.
+
+---
+
+## Session: Phase 3 (draft pipeline + builder UX)
+
+**Date**: 2026-03-28  
+
+### What shipped
+
+- **`assessments.draft_content` JSONB** — Prisma field + migration SQL; persists the five-section draft between sessions. Run on Supabase: `ALTER TABLE assessments ADD COLUMN draft_content JSONB;` (or `prisma migrate deploy` with the new migration).
+- **Extract pipeline** — `POST /api/assessment-builder/extract`: download from Storage, PDF/DOCX/TXT extraction (`pdf-parse` v1 via dynamic import, `mammoth`), ~800-token chunks with 100-token overlap (`gpt-tokenizer`), `embedText` from `lib/embeddings.ts`, `document_chunks` inserts via `$executeRawUnsafe` with `[...]::vector` (same pattern as `lib/embeddings-legacy.ts` / `lib/retrieval.ts`). Skips documents that already have chunks.
+- **Generate draft** — `POST /api/assessment-builder/generate-draft`: top 8 assessment chunks + top 4 KB chunks (`assessment-builder` or `all` on chunk agents), Claude JSON with five keys, validate, persist to `draft_content`.
+- **Refine** — `POST /api/assessment-builder/refine-section`: `reply` + `draft` + `suggestions`; `mergeRefinedDraft` keeps dirty sections from client; persists merged draft.
+- **Save draft** — `POST /api/assessment-builder/save-draft` for debounced editor saves.
+- **Builder UX** — On load without `draft_content`: extract then generate; with persisted draft: hydrate editor only. Shimmer until ready; live `contenteditable` with toolbar (`margin: -44px -52px 28px`), highlights, `data-manually-edited` on first keypress per section. Scripted SEI Guide intro + two questions (prototype copy); refine rounds add Q2 then closing line. Suggestion cards for dirty sections with Apply.
+
+### TDD
+
+- `lib/__tests__/assessment-builder-chunk.test.ts`, `assessment-builder-draft-schema.test.ts`, `assessment-builder-extract-text.test.ts`
+
+### Commits (this session)
+
+1. `SEI-42 Add draft_content column, chunk pipeline helpers, and unit tests`
+2. `SEI-42 Add assessment builder extract, generate-draft, refine-section, and save-draft APIs`
+3. `SEI-42 Wire builder workspace with draft editor, SEI Guide chat, and draft persistence`
+
+### Files (high level)
+
+- `lib/assessment-builder-*.ts`, `lib/prompts.ts`, `prisma/schema.prisma`, `prisma/migrations/20260328120000_add_assessment_draft_content/migration.sql`
+- `app/api/assessment-builder/extract|generate-draft|refine-section|save-draft/route.ts`
+- `components/assessment-builder/AssessmentBuilderWorkspace.tsx`, `app/guide/assessment-builder/assessment-builder.css`, `[id]/page.tsx`, `lib/assessment-builder-queries.ts`
