@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { generateEmbedding } from './embeddings';
+import { generateEmbedding } from './embeddings-legacy';
 
 export interface RetrievalFilter {
   roles?: string[];

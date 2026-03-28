@@ -54,12 +54,12 @@ export async function POST(req: NextRequest) {
     const status =
       intent === 'create_draft' ? 'in_progress' : 'new';
 
-    const assessment = await prisma.assessment.create({
+    const assessment = await prisma.assessments.create({
       data: {
-        createdBy: STUB_USER_ID,
-        clientName: clientName || 'Untitled assessment',
+        created_by: STUB_USER_ID,
+        client_name: clientName || 'Untitled assessment',
         stakeholders,
-        projectBrief,
+        project_brief: projectBrief,
         status,
       },
     });
@@ -69,12 +69,12 @@ export async function POST(req: NextRequest) {
         assessmentId: assessment.id,
         file,
       });
-      await prisma.assessmentDocument.create({
+      await prisma.assessment_documents.create({
         data: {
-          assessmentId: assessment.id,
+          assessment_id: assessment.id,
           filename: file.name,
-          fileSize: file.size,
-          storagePath,
+          file_size: file.size,
+          storage_path: storagePath,
         },
       });
     }

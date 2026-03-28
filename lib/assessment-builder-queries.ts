@@ -4,30 +4,38 @@ import { assessmentToDashboardRow } from '@/lib/assessment-builder-dashboard';
 
 /** Dashboard list: Phase 1 stub user only (Decision 7). */
 export async function getDashboardAssessments() {
-  const rows = await prisma.assessment.findMany({
-    where: { createdBy: STUB_USER_ID },
-    orderBy: { updatedAt: 'desc' },
+  const rows = await prisma.assessments.findMany({
+    where: { created_by: STUB_USER_ID },
+    orderBy: { updated_at: 'desc' },
     include: {
-      _count: { select: { documents: true } },
+      _count: { select: { assessment_documents: true } },
     },
   });
   return rows.map((a) =>
     assessmentToDashboardRow({
       id: a.id,
-      clientName: a.clientName,
+      clientName: a.client_name,
       stakeholders: a.stakeholders,
       status: a.status,
-      updatedAt: a.updatedAt,
-      docCount: a._count.documents,
+      updatedAt: a.updated_at,
+      docCount: a._count.assessment_documents,
     }),
   );
 }
 
 export async function getAssessmentWorkspaceById(id: string) {
-  return prisma.assessment.findFirst({
-    where: { id, createdBy: STUB_USER_ID },
+  const row = await prisma.assessments.findFirst({
+    where: { id, created_by: STUB_USER_ID },
     include: {
-      documents: { select: { id: true, filename: true } },
+      assessment_documents: { select: { id: true, filename: true } },
     },
   });
+  if (!row) return null;
+  return {
+    id: row.id,
+    clientName: row.client_name,
+    stakeholders: row.stakeholders,
+    projectBrief: row.project_brief,
+    documents: row.assessment_documents,
+  };
 }

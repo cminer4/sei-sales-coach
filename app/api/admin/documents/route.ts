@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { agent_type } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { chunkDocument, generateEmbeddings, storeKnowledgeBaseChunks } from '@/lib/embeddings';
+import { chunkDocument, generateEmbeddings, storeKnowledgeBaseChunks } from '@/lib/embeddings-legacy';
 
 const VALID_CATEGORIES = [
   'methodology',
