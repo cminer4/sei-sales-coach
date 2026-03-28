@@ -1,5 +1,9 @@
 import { AssessmentDashboard } from '@/components/assessment-builder/AssessmentDashboard';
+import { getDashboardAssessments } from '@/lib/assessment-builder-queries';
 
-export default function AssessmentBuilderDashboardPage() {
-  return <AssessmentDashboard />;
+export const dynamic = 'force-dynamic';
+
+export default async function AssessmentBuilderDashboardPage() {
+  const initialRows = await getDashboardAssessments();
+  return <AssessmentDashboard initialRows={initialRows} />;
 }

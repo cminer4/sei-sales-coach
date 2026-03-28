@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import {
   filterDashboardRows,
@@ -10,7 +11,6 @@ import {
   type DashboardSortOption,
   type DashboardStatusFilter,
 } from '@/lib/assessment-builder-dashboard';
-import { ASSESSMENT_BUILDER_SEED_ROWS } from '@/lib/assessment-builder-seed-data';
 
 function badgeClass(name: DashboardRow['statusBadgeClass']): string {
   if (name === 'b-disc') return 'ab-b-disc';
@@ -24,7 +24,8 @@ function dotClass(name: DashboardRow['dotClass']): string {
   return 'ab-d-done';
 }
 
-export function AssessmentDashboard() {
+export function AssessmentDashboard({ initialRows }: { initialRows: DashboardRow[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DashboardStatusFilter>('all');
   const [sort, setSort] = useState<DashboardSortOption>('date-desc');
@@ -33,9 +34,11 @@ export function AssessmentDashboard() {
   const [dateDir, setDateDir] = useState<'asc' | 'desc'>('desc');
 
   const rows = useMemo(() => {
-    const filtered = filterDashboardRows(ASSESSMENT_BUILDER_SEED_ROWS, query, statusFilter);
+    const filtered = filterDashboardRows(initialRows, query, statusFilter);
     return sortDashboardRows(filtered, sort);
-  }, [query, statusFilter, sort]);
+  }, [initialRows, query, statusFilter, sort]);
+
+  const hasAnyAssessments = initialRows.length > 0;
 
   function setFilter(f: DashboardStatusFilter) {
     setStatusFilter(f);
@@ -105,7 +108,31 @@ export function AssessmentDashboard() {
         </Link>
       </div>
 
-      <div className="ab-tbl-controls">
+      {!hasAnyAssessments ? (
+        <div className="ab-dash-empty">
+          <h2>No assessments yet</h2>
+          <p>Create your first assessment to get started.</p>
+          <Link href="/guide/assessment-builder/new" className="ab-btn-new">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            New Assessment
+          </Link>
+        </div>
+      ) : null}
+
+      {hasAnyAssessments ? (
+        <div className="ab-tbl-controls">
         <div className="ab-tbl-search">
           <svg
             width="13"
@@ -156,7 +183,9 @@ export function AssessmentDashboard() {
           </select>
         </div>
       </div>
+      ) : null}
 
+      {hasAnyAssessments ? (
       <table className="ab-proj-table">
         <thead>
           <tr>
@@ -182,7 +211,19 @@ export function AssessmentDashboard() {
             </tr>
           ) : (
             rows.map((r) => (
-              <tr key={r.id}>
+              <tr
+                key={r.id}
+                className="ab-row-click"
+                role="link"
+                tabIndex={0}
+                onClick={() => router.push(`/guide/assessment-builder/${r.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.push(`/guide/assessment-builder/${r.id}`);
+                  }
+                }}
+              >
                 <td className="ab-td-name">
                   <span className={`ab-pr-dot ${dotClass(r.dotClass)}`} aria-hidden />
                   {r.clientName}
@@ -202,6 +243,7 @@ export function AssessmentDashboard() {
           )}
         </tbody>
       </table>
+      ) : null}
     </div>
   );
 }

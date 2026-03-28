@@ -266,6 +266,10 @@
   transition: background 0.13s;
 }
 
+.ab-proj-table tbody tr.ab-row-click {
+  cursor: pointer;
+}
+
 .ab-proj-table tbody tr:hover td {
   background: #f2eefa;
 }
@@ -421,7 +425,8 @@
   margin-bottom: 16px;
 }
 
-.ab-field label {
+.ab-field label,
+.ab-field-label-span {
   display: block;
   font-size: 10px;
   font-weight: 700;
@@ -614,4 +619,355 @@
   font-size: 12px;
   color: #b00020;
   margin-top: 6px;
+}
+
+/* ── Builder workspace (sei-assessment-builder-v8.html #builder) ── */
+.ab-builder-root {
+  --ab-chat: 320px;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ab-lpanel {
+  width: 60%;
+  flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e8e4f0;
+  background: #f7f6f4;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.ab-lpanel-slim {
+  width: var(--ab-chat);
+}
+
+.ab-lpanel-cfg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    opacity 0.25s,
+    transform 0.3s;
+  background: #f7f6f4;
+}
+
+.ab-lpanel-cfg.ab-hide {
+  opacity: 0;
+  transform: translateX(-12px);
+  pointer-events: none;
+}
+
+.ab-lpanel-cfg.ab-gone {
+  display: none;
+}
+
+.ab-chat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  background: #f7f6f4;
+}
+
+.ab-chat-in {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.ab-proj-hdr {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #e8e4f0;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  background: #f7f6f4;
+}
+
+.ab-ph-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.ab-ph-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1530;
+}
+
+.ab-ph-edit {
+  font-size: 10px;
+  color: #999;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 3px 8px;
+  cursor: not-allowed;
+  font-family: inherit;
+  opacity: 0.7;
+}
+
+.ab-ph-pills {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.ab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(155, 109, 255, 0.25);
+  color: #7a4dcc;
+  background: rgba(155, 109, 255, 0.07);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ab-pill:hover {
+  background: rgba(155, 109, 255, 0.13);
+  border-color: rgba(155, 109, 255, 0.4);
+}
+
+.ab-drawer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f0eefa;
+}
+
+.ab-drawer.open {
+  max-height: 260px;
+  border-bottom: 1px solid #e8e4f0;
+}
+
+.ab-drawer-inner {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ab-dr-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #bbb;
+  margin-bottom: 4px;
+}
+
+.ab-doc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.ab-doc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: 1px solid rgba(155, 109, 255, 0.25);
+  border-radius: 8px;
+  padding: 4px 9px;
+  font-size: 11px;
+  color: #7a4dcc;
+  cursor: default;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ab-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #ddd transparent;
+  background: #f7f6f4;
+}
+
+.ab-chat-footer {
+  padding: 10px 14px;
+  border-top: 1px solid #e8e4f0;
+  flex-shrink: 0;
+  background: #f7f6f4;
+}
+
+.ab-chat-wrap {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 9px;
+  display: flex;
+  align-items: flex-end;
+  padding: 7px 10px;
+  gap: 7px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ab-chat-wrap textarea {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: #1a1530;
+  resize: none;
+  min-height: 18px;
+  max-height: 80px;
+  line-height: 1.5;
+}
+
+.ab-send-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #e85d75, #9b6dff);
+  border: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ab-canvas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.ab-shimmer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #e8e5e0;
+}
+
+.ab-shimmer-tbar {
+  height: 40px;
+  background: #f9f8f6;
+  border-bottom: 1px solid #ede9e4;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ab-sh-ghost {
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.09);
+  position: relative;
+  overflow: hidden;
+}
+
+.ab-sh-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: ab-sg 1.8s ease-in-out infinite;
+}
+
+@keyframes ab-sg {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ab-shimmer-doc {
+  flex: 1;
+  background: #e8e5e0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 0;
+}
+
+.ab-shim-page {
+  background: #fff;
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  padding: 44px 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.12);
+}
+
+.ab-sl {
+  border-radius: 3px;
+  background: #ede9e5;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ab-sl::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: ab-sg 1.8s ease-in-out infinite;
+}
+
+.ab-doc-chip-ro {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(155, 109, 255, 0.07);
+  border: 1px solid rgba(155, 109, 255, 0.22);
+  border-radius: 8px;
+  padding: 4px 9px;
+  font-size: 11px;
+  color: #7a4dcc;
+}
+
+.ab-dash-empty {
+  padding: 48px 44px;
+  text-align: center;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.ab-dash-empty h2 {
+  font-family: var(--font-ab-serif), 'DM Serif Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #1a1530;
+  margin-bottom: 8px;
+}
+
+.ab-dash-empty p {
+  font-size: 13px;
+  color: #6b6580;
+  font-weight: 300;
+  margin-bottom: 20px;
 }

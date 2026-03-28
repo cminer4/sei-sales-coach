@@ -27,6 +27,28 @@ const STATUS_STYLES: Record<
   Complete: { badge: 'b-done', dot: 'd-done' },
 };
 
+/** Map a persisted assessment + doc count to a dashboard table row. */
+export function assessmentToDashboardRow(input: {
+  id: string;
+  clientName: string;
+  stakeholders: string[];
+  status: string;
+  updatedAt: Date;
+  docCount: number;
+}): DashboardRow {
+  const m = mapDbStatusToDisplay(input.status);
+  return {
+    id: input.id,
+    clientName: input.clientName,
+    stakeholdersDisplay: input.stakeholders.join(', '),
+    statusLabel: m.label,
+    statusBadgeClass: m.badge,
+    dotClass: m.dot,
+    docCount: input.docCount,
+    updatedAt: input.updatedAt,
+  };
+}
+
 /** Map Prisma assessment.status to dashboard display (FR-004 / prototype). */
 export function mapDbStatusToDisplay(dbStatus: string): {
   label: DashboardRow['statusLabel'];

@@ -42,3 +42,33 @@
 - Builder workspace UI, draft pipeline, contenteditable, publish, DOCX.
 - Wire dashboard to Prisma list API when ready.
 - Supabase bucket + RLS policies for assessment uploads.
+
+---
+
+## Session: Phase 2 (builder shell + live dashboard)
+
+**Date**: 2026-03-28  
+
+### What shipped
+
+- **Builder workspace** at `/guide/assessment-builder/[id]`: left panel starts at 60% width, animates to 320px (`0.5s cubic-bezier(0.4, 0, 0.2, 1)`); config view fades out / unmounts after 280ms; chat view fades in at 300ms (prototype timings); right canvas shows shimmer skeleton only (no draft generation). Project header, drawer, empty message area, disabled chat input.
+- **Dashboard** loads rows from PostgreSQL via `getDashboardAssessments()` (`createdBy = STUB_USER_ID`). Search, filter, and sort unchanged. **Empty state** when there are no assessments (copy + New Assessment CTA). Table rows navigate to the builder workspace. `export const dynamic = 'force-dynamic'` on the dashboard page so build-time prerender does not require DB.
+- **`assessmentToDashboardRow`** maps Prisma assessments to `DashboardRow` (tested).
+
+### Files
+
+**New**
+
+- `components/assessment-builder/AssessmentBuilderWorkspace.tsx`
+- `lib/assessment-builder-queries.ts`
+- `app/guide/assessment-builder/[id]/layout.tsx`
+
+**Modified**
+
+- `app/guide/assessment-builder/[id]/page.tsx`, `page.tsx`, `layout.tsx`, `assessment-builder.css`
+- `lib/assessment-builder-dashboard.ts`, `lib/__tests__/assessment-builder-dashboard.test.ts`
+- `components/assessment-builder/AssessmentDashboard.tsx`
+
+### Follow-ups
+
+- Draft generation, contenteditable canvas, SEI Guide messages, publish overlay.

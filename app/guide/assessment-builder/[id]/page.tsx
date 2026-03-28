@@ -1,4 +1,6 @@
-import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { AssessmentBuilderWorkspace } from '@/components/assessment-builder/AssessmentBuilderWorkspace';
+import { getAssessmentWorkspaceById } from '@/lib/assessment-builder-queries';
 
 export default async function AssessmentBuilderWorkspacePage({
   params,
@@ -6,18 +8,20 @@ export default async function AssessmentBuilderWorkspacePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const assessment = await getAssessmentWorkspaceById(id);
+  if (!assessment) {
+    notFound();
+  }
+
   return (
-    <div className="ab-dash">
-      <div className="ab-db-head" style={{ marginBottom: 16 }}>
-        <h1 className="ab-serif">Assessment workspace</h1>
-        <p>
-          Draft generation and editor ship in the next slice. Assessment id:{' '}
-          <code style={{ fontSize: 12 }}>{id}</code>
-        </p>
-      </div>
-      <Link href="/guide/assessment-builder" className="ab-btn-new" style={{ display: 'inline-flex' }}>
-        ← Back to dashboard
-      </Link>
-    </div>
+    <AssessmentBuilderWorkspace
+      assessment={{
+        id: assessment.id,
+        clientName: assessment.clientName,
+        stakeholders: assessment.stakeholders,
+        projectBrief: assessment.projectBrief,
+        documents: assessment.documents,
+      }}
+    />
   );
 }

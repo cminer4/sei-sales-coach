@@ -1,4 +1,5 @@
 import {
+  assessmentToDashboardRow,
   filterDashboardRows,
   mapDbStatusToDisplay,
   sortDashboardRows,
@@ -27,6 +28,25 @@ const baseRows: DashboardRow[] = [
     updatedAt: new Date('2026-03-14T14:22:00'),
   },
 ];
+
+describe('assessmentToDashboardRow', () => {
+  it('maps DB fields to dashboard row', () => {
+    const row = assessmentToDashboardRow({
+      id: 'a1',
+      clientName: 'Acme Co',
+      stakeholders: ['A', 'B'],
+      status: 'draft_ready',
+      updatedAt: new Date('2026-03-01T12:00:00'),
+      docCount: 3,
+    });
+    expect(row.clientName).toBe('Acme Co');
+    expect(row.stakeholdersDisplay).toBe('A, B');
+    expect(row.statusLabel).toBe('Draft Ready');
+    expect(row.docCount).toBe(3);
+    expect(row.statusBadgeClass).toBe('b-draft');
+    expect(row.dotClass).toBe('d-draft');
+  });
+});
 
 describe('mapDbStatusToDisplay', () => {
   it('maps new and in_progress to Discovery', () => {
