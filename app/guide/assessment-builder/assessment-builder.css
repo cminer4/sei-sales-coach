@@ -861,6 +861,16 @@
   min-width: 0;
 }
 
+.ab-canvas-rel {
+  position: relative;
+}
+
+.ab-shimmer-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
 .ab-shimmer {
   flex: 1;
   display: flex;
@@ -1280,6 +1290,38 @@
 
 .ab-sug-apply:hover {
   background: rgba(155, 109, 255, 0.14);
+}
+
+.ab-upd-card {
+  background: #fff;
+  border: 1px solid rgba(155, 109, 255, 0.22);
+  border-left: 3px solid #9b6dff;
+  border-radius: 10px;
+  padding: 10px 13px;
+  margin-top: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  cursor: default;
+}
+
+.ab-upd-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9b6dff;
+  margin-bottom: 3px;
+}
+
+.ab-upd-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1530;
+}
+
+.ab-upd-note {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
 }
 
 .ab-send-btn-on {

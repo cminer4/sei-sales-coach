@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { DraftContent, DraftSectionKey } from '@/lib/assessment-builder-draft-types';
 import { DRAFT_SECTION_KEYS } from '@/lib/assessment-builder-draft-types';
 import {
@@ -21,6 +21,7 @@ export type WorkspaceAssessment = {
 type ChatMsg =
   | { role: 'a'; html: string }
   | { role: 'u'; text: string }
+  | { role: 'a'; kind: 'update'; title: string; note: string }
   | {
       role: 'a';
       kind: 'suggestion';
@@ -36,15 +37,17 @@ function escapeHtmlText(s: string): string {
     .replace(/\n/g, '<br>');
 }
 
+/** Prototype DEMO[0] — client name in strong; escape minimal for safe HTML. */
 function buildIntroHtml(clientName: string): string {
   const n = clientName.trim() || 'the client';
-  return `Hi — I'm here to help you build the AI Assessment for <strong>${escapeAttr(
-    n,
-  )}</strong>. I've read through what you shared and generated a first draft on the right — you can start editing it now.<br><br>I have a few questions that will help me sharpen the content as we work through it.`;
+  const safe = n.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `Hi — I'm here to help you build the AI Assessment for <strong>${safe}</strong>. I've read through what you shared and generated a first draft on the right — you can start editing it now.<br><br>I have a few questions that will help me sharpen the content as we work through it.`;
 }
 
-function escapeAttr(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+function truncateNote(s: string, max: number): string {
+  const t = s.replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1)}…`;
 }
 
 const Q1_HTML =
@@ -71,20 +74,22 @@ export function AssessmentBuilderWorkspace({
   const [chatIn, setChatIn] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const [pipelinePhase, setPipelinePhase] = useState<
-    'idle' | 'extract' | 'generate' | 'ready' | 'error'
-  >(() => (assessment.draftContent ? 'ready' : 'idle'));
-  const [draft, setDraft] = useState<DraftContent | null>(assessment.draftContent);
+  const [pipelinePhase, setPipelinePhase] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [draft, setDraft] = useState<DraftContent | null>(null);
+  /** True only after useLayoutEffect has written full HTML to the editor (no blank canvas flash). */
+  const [documentPainted, setDocumentPainted] = useState(false);
   const [dirty, setDirty] = useState<Partial<Record<DraftSectionKey, boolean>>>({});
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [scriptedChatDone, setScriptedChatDone] = useState(false);
+  /** Intro + first clarifying question posted; only then may the user send (refine). */
+  const [scriptSequenceComplete, setScriptSequenceComplete] = useState(false);
   const [refineRound, setRefineRound] = useState(0);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgsEndRef = useRef<HTMLDivElement | null>(null);
+  const scriptTimersRef = useRef<number[]>([]);
 
   const applyDraftToEditor = useCallback(
     (d: DraftContent) => {
@@ -107,15 +112,16 @@ export function AssessmentBuilderWorkspace({
     };
   }, []);
 
+  /** On mount: extract then generate-draft (no user action). Shimmer stays until document is painted. */
   useEffect(() => {
     let cancelled = false;
+    setDocumentPainted(false);
+    setPipelinePhase('loading');
+    setDraft(null);
+    setScriptSequenceComplete(false);
+    setMessages([]);
+
     async function run() {
-      if (assessment.draftContent) {
-        setDraft(assessment.draftContent);
-        setPipelinePhase('ready');
-        return;
-      }
-      setPipelinePhase('extract');
       try {
         const ex = await fetch('/api/assessment-builder/extract', {
           method: 'POST',
@@ -128,7 +134,6 @@ export function AssessmentBuilderWorkspace({
         }
         if (cancelled) return;
 
-        setPipelinePhase('generate');
         const gen = await fetch('/api/assessment-builder/generate-draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -142,43 +147,58 @@ export function AssessmentBuilderWorkspace({
         const d = genJson.draft as DraftContent;
         setDraft(d);
         setPipelinePhase('ready');
-        queueMicrotask(() => applyDraftToEditor(d));
       } catch (e) {
         console.error(e);
         if (!cancelled) setPipelinePhase('error');
       }
     }
-    run();
+    void run();
     return () => {
       cancelled = true;
     };
-  }, [assessment.id, assessment.draftContent, applyDraftToEditor]);
+  }, [assessment.id]);
 
-  /** Hydrate editor when returning with a persisted draft (editor mounts after phase ready). */
-  useEffect(() => {
-    if (pipelinePhase !== 'ready' || !assessment.draftContent) return;
-    const id = requestAnimationFrame(() => {
+  /** Paint full document before first browser paint so the canvas is never blank. */
+  useLayoutEffect(() => {
+    if (pipelinePhase !== 'ready' || !draft) return;
+    const content = draft;
+    function paint() {
+      const el = editorRef.current;
+      if (!el) return false;
+      applyDraftToEditor(content);
+      setDocumentPainted(true);
+      return true;
+    }
+    if (!paint()) {
       requestAnimationFrame(() => {
-        applyDraftToEditor(assessment.draftContent!);
+        paint();
       });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [assessment.draftContent, pipelinePhase, applyDraftToEditor]);
+    }
+  }, [pipelinePhase, draft, applyDraftToEditor]);
 
+  /**
+   * After the document is painted: prototype DEMO timing — first agent bubble after 500ms,
+   * second agent bubble 900ms later (see next() in sei-assessment-builder-v8.html).
+   */
   useEffect(() => {
-    if (pipelinePhase !== 'ready' || !draft || scriptedChatDone) return;
-    setScriptedChatDone(true);
-    const t1 = setTimeout(() => {
+    if (!documentPainted) return;
+    scriptTimersRef.current.forEach(clearTimeout);
+    scriptTimersRef.current = [];
+
+    const tIntro = window.setTimeout(() => {
       setMessages([{ role: 'a', html: buildIntroHtml(assessment.clientName) }]);
-    }, 400);
-    const t2 = setTimeout(() => {
+    }, 500);
+    const tQ1 = window.setTimeout(() => {
       setMessages((m) => [...m, { role: 'a', html: Q1_HTML }]);
-    }, 1100);
+      setScriptSequenceComplete(true);
+    }, 500 + 900);
+    scriptTimersRef.current.push(tIntro, tQ1);
+
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      scriptTimersRef.current.forEach(clearTimeout);
+      scriptTimersRef.current = [];
     };
-  }, [pipelinePhase, draft, scriptedChatDone, assessment.clientName]);
+  }, [documentPainted, assessment.clientName]);
 
   useEffect(() => {
     msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -245,7 +265,7 @@ export function AssessmentBuilderWorkspace({
 
   const sendChat = async () => {
     const text = chatInput.trim();
-    if (!text || sending) return;
+    if (!text || sending || !scriptSequenceComplete || !documentPainted) return;
     const root = editorRef.current;
     const parsed = root ? parseDraftSectionsFromEditorRoot(root) : null;
     const latest = parsed ?? draft;
@@ -272,20 +292,30 @@ export function AssessmentBuilderWorkspace({
 
       const merged = data.draft as DraftContent;
       setDraft(merged);
-      applyDraftToEditor(merged);
 
       const replyText = typeof data.reply === 'string' ? data.reply : '';
-      setMessages((m) => [...m, { role: 'a', html: escapeHtmlText(replyText) }]);
-
+      const note = replyText.trim() ? truncateNote(replyText, 140) : '';
       const sug = data.suggestions as Partial<Record<DraftSectionKey, string>> | undefined;
+      const suggestionMsgs: ChatMsg[] = [];
       if (sug) {
         for (const k of DRAFT_SECTION_KEYS) {
           const html = sug[k];
           if (html && dirty[k]) {
-            setMessages((m) => [...m, { role: 'a', kind: 'suggestion', section: k, html }]);
+            suggestionMsgs.push({ role: 'a', kind: 'suggestion', section: k, html });
           }
         }
       }
+      setMessages((m) => {
+        const next: ChatMsg[] = [
+          ...m,
+          { role: 'a', html: escapeHtmlText(replyText) },
+        ];
+        if (note) {
+          next.push({ role: 'a', kind: 'update', title: 'Document updated', note });
+        }
+        next.push(...suggestionMsgs);
+        return next;
+      });
 
       const next = refineRound + 1;
       setRefineRound(next);
@@ -338,8 +368,10 @@ export function AssessmentBuilderWorkspace({
 
   const stk = assessment.stakeholders.length;
   const docs = assessment.documents.length;
-  const showShimmer = pipelinePhase !== 'ready' && pipelinePhase !== 'error';
-  const showDoc = pipelinePhase === 'ready' && draft;
+  const showLiveEditor = pipelinePhase === 'ready' && draft !== null;
+  const showShimmerOverlay = !documentPainted && pipelinePhase !== 'error';
+  const chatEnabled =
+    scriptSequenceComplete && pipelinePhase === 'ready' && documentPainted;
 
   return (
     <div className="ab-builder-root">
@@ -484,6 +516,17 @@ export function AssessmentBuilderWorkspace({
           </div>
           <div className="ab-msgs" aria-label="SEI Guide messages">
             {messages.map((msg, i) => {
+              if (msg.role === 'a' && 'kind' in msg && msg.kind === 'update') {
+                return (
+                  <div key={i} className="ab-msg-row">
+                    <div className="ab-upd-card">
+                      <div className="ab-upd-lbl">Document updated</div>
+                      <div className="ab-upd-title">{msg.title}</div>
+                      <div className="ab-upd-note">{msg.note}</div>
+                    </div>
+                  </div>
+                );
+              }
               if (msg.role === 'a' && 'kind' in msg && msg.kind === 'suggestion') {
                 return (
                   <div key={i} className="ab-msg-row">
@@ -522,8 +565,14 @@ export function AssessmentBuilderWorkspace({
           <div className="ab-chat-footer">
             <div className="ab-chat-wrap">
               <textarea
-                placeholder={pipelinePhase === 'ready' ? 'Message SEI Guide…' : 'Preparing draft…'}
-                disabled={pipelinePhase !== 'ready' || sending}
+                placeholder={
+                  !documentPainted || pipelinePhase === 'loading'
+                    ? 'Preparing draft…'
+                    : !scriptSequenceComplete
+                      ? 'SEI Guide will ask a question first…'
+                      : 'Message SEI Guide…'
+                }
+                disabled={!chatEnabled || sending}
                 rows={1}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
@@ -537,7 +586,7 @@ export function AssessmentBuilderWorkspace({
               <button
                 type="button"
                 className="ab-send-btn ab-send-btn-on"
-                disabled={pipelinePhase !== 'ready' || sending || !chatInput.trim()}
+                disabled={!chatEnabled || sending || !chatInput.trim()}
                 aria-label="Send"
                 onClick={() => void sendChat()}
               >
@@ -560,14 +609,14 @@ export function AssessmentBuilderWorkspace({
         </div>
       </div>
 
-      <div className="ab-canvas">
+      <div className="ab-canvas ab-canvas-rel">
         {pipelinePhase === 'error' && (
           <div className="ab-pipeline-err">
             Draft generation failed. Check uploads and try reloading the page.
           </div>
         )}
-        {showShimmer && (
-          <div className="ab-shimmer">
+        {showShimmerOverlay && (
+          <div className="ab-shimmer ab-shimmer-overlay">
             <div className="ab-shimmer-doc">
               <div className="ab-shim-page">
                 <div className="ab-shimmer-tbar" style={{ margin: '-44px -52px 28px' }}>
@@ -610,8 +659,15 @@ export function AssessmentBuilderWorkspace({
           </div>
         )}
 
-        {showDoc && (
-          <div className="ab-live">
+        {showLiveEditor && (
+          <div
+            className="ab-live"
+            style={{
+              opacity: documentPainted ? 1 : 0,
+              pointerEvents: documentPainted ? 'auto' : 'none',
+            }}
+            aria-hidden={!documentPainted}
+          >
             <div className="ab-escroll">
               <div className="ab-docpage">
                 <div className="ab-tbar">
