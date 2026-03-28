@@ -182,6 +182,7 @@ model assessments {
   client_name          String
   stakeholders         String[]               @default([])
   project_brief        String?
+  draft_content        Json?                  @map("draft_content")
   status               String                 @default("new")
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   updated_at           DateTime               @default(now()) @db.Timestamptz(6)
