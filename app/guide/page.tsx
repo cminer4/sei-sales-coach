@@ -29,6 +29,27 @@ export default function GuidePage() {
           </div>
 
           <div className="grid gap-6 mt-12">
+            <Link href="/guide/assessment-builder">
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                className="glass-card p-8 cursor-pointer group"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-white/10">
+                      <Briefcase className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-semibold">AI Assessment Builder</h2>
+                      <p className="text-white/60 max-w-md">
+                        Turn Discovery findings into structured, client-ready deliverables.
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
+                </div>
+              </motion.div>
+            </Link>
             <Link href="/guide/assessment">
               <motion.div
                 whileHover={{ scale: 1.01 }}
