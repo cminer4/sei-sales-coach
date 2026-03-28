@@ -21,6 +21,7 @@ export default async function AssessmentBuilderWorkspacePage({
         stakeholders: assessment.stakeholders,
         projectBrief: assessment.projectBrief,
         documents: assessment.documents,
+        draftContent: assessment.draftContent,
       }}
     />
   );

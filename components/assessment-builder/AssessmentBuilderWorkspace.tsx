@@ -1,7 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { DraftContent, DraftSectionKey } from '@/lib/assessment-builder-draft-types';
+import { DRAFT_SECTION_KEYS } from '@/lib/assessment-builder-draft-types';
+import {
+  buildFullEditorHtml,
+  parseDraftSectionsFromEditorRoot,
+} from '@/lib/assessment-builder-document-html';
 
 export type WorkspaceAssessment = {
   id: string;
@@ -9,18 +15,85 @@ export type WorkspaceAssessment = {
   stakeholders: string[];
   projectBrief: string | null;
   documents: { id: string; filename: string }[];
+  draftContent: DraftContent | null;
 };
 
+type ChatMsg =
+  | { role: 'a'; html: string }
+  | { role: 'u'; text: string }
+  | {
+      role: 'a';
+      kind: 'suggestion';
+      section: DraftSectionKey;
+      html: string;
+    };
+
+function escapeHtmlText(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+}
+
+function buildIntroHtml(clientName: string): string {
+  const n = clientName.trim() || 'the client';
+  return `Hi — I'm here to help you build the AI Assessment for <strong>${escapeAttr(
+    n,
+  )}</strong>. I've read through what you shared and generated a first draft on the right — you can start editing it now.<br><br>I have a few questions that will help me sharpen the content as we work through it.`;
+}
+
+function escapeAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+
+const Q1_HTML =
+  'What is the <strong>primary business challenge</strong> driving this engagement — cost reduction, revenue growth, or risk/compliance?';
+
+const Q2_HTML =
+  'One more: <strong>any significant blockers or unresolved dependencies</strong> that came up in the sessions?';
+
+const CLOSING_HTML =
+  'The draft is live on the right. Select any text to highlight or add a comment. When you\'re ready to finalize, hit Publish Draft.';
+
 /**
- * Builder shell: left panel 60% → 320px, config fades out, chat fades in (prototype timings).
- * Right canvas shows shimmer only until draft generation exists.
+ * Builder shell: left panel animation, document canvas with extract → generate pipeline,
+ * contenteditable draft, toolbar, SEI Guide chat, refine with suggestion cards for dirty sections.
  */
-export function AssessmentBuilderWorkspace({ assessment }: { assessment: WorkspaceAssessment }) {
+export function AssessmentBuilderWorkspace({
+  assessment,
+}: {
+  assessment: WorkspaceAssessment;
+}) {
   const [configHide, setConfigHide] = useState(false);
   const [configGone, setConfigGone] = useState(false);
   const [panelSlim, setPanelSlim] = useState(false);
   const [chatIn, setChatIn] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const [pipelinePhase, setPipelinePhase] = useState<
+    'idle' | 'extract' | 'generate' | 'ready' | 'error'
+  >(() => (assessment.draftContent ? 'ready' : 'idle'));
+  const [draft, setDraft] = useState<DraftContent | null>(assessment.draftContent);
+  const [dirty, setDirty] = useState<Partial<Record<DraftSectionKey, boolean>>>({});
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const [scriptedChatDone, setScriptedChatDone] = useState(false);
+  const [refineRound, setRefineRound] = useState(0);
+
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const msgsEndRef = useRef<HTMLDivElement | null>(null);
+
+  const applyDraftToEditor = useCallback(
+    (d: DraftContent) => {
+      const el = editorRef.current;
+      if (!el) return;
+      el.innerHTML = buildFullEditorHtml(assessment.clientName, d);
+    },
+    [assessment.clientName],
+  );
 
   useEffect(() => {
     setConfigHide(true);
@@ -34,8 +107,239 @@ export function AssessmentBuilderWorkspace({ assessment }: { assessment: Workspa
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      if (assessment.draftContent) {
+        setDraft(assessment.draftContent);
+        setPipelinePhase('ready');
+        return;
+      }
+      setPipelinePhase('extract');
+      try {
+        const ex = await fetch('/api/assessment-builder/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assessmentId: assessment.id }),
+        });
+        const exJson = await ex.json();
+        if (!ex.ok && exJson.errors?.length) {
+          console.warn('[assessment-builder] extract warnings', exJson.errors);
+        }
+        if (cancelled) return;
+
+        setPipelinePhase('generate');
+        const gen = await fetch('/api/assessment-builder/generate-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assessmentId: assessment.id }),
+        });
+        const genJson = await gen.json();
+        if (!gen.ok) {
+          throw new Error(genJson.error || 'Generate failed');
+        }
+        if (cancelled) return;
+        const d = genJson.draft as DraftContent;
+        setDraft(d);
+        setPipelinePhase('ready');
+        queueMicrotask(() => applyDraftToEditor(d));
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setPipelinePhase('error');
+      }
+    }
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [assessment.id, assessment.draftContent, applyDraftToEditor]);
+
+  /** Hydrate editor when returning with a persisted draft (editor mounts after phase ready). */
+  useEffect(() => {
+    if (pipelinePhase !== 'ready' || !assessment.draftContent) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        applyDraftToEditor(assessment.draftContent!);
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [assessment.draftContent, pipelinePhase, applyDraftToEditor]);
+
+  useEffect(() => {
+    if (pipelinePhase !== 'ready' || !draft || scriptedChatDone) return;
+    setScriptedChatDone(true);
+    const t1 = setTimeout(() => {
+      setMessages([{ role: 'a', html: buildIntroHtml(assessment.clientName) }]);
+    }, 400);
+    const t2 = setTimeout(() => {
+      setMessages((m) => [...m, { role: 'a', html: Q1_HTML }]);
+    }, 1100);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [pipelinePhase, draft, scriptedChatDone, assessment.clientName]);
+
+  useEffect(() => {
+    msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const persistDraft = useCallback(
+    async (d: DraftContent) => {
+      await fetch('/api/assessment-builder/save-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assessmentId: assessment.id, draft: d }),
+      });
+    },
+    [assessment.id],
+  );
+
+  const onEditorInput = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const parsed = parseDraftSectionsFromEditorRoot(el);
+    if (!parsed) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      void persistDraft(parsed);
+    }, 1500);
+  };
+
+  const onEditorKeyDown = (e: React.KeyboardEvent) => {
+    const t = e.target as Node;
+    const sec = (t as HTMLElement).closest?.('[data-section]') as HTMLElement | null;
+    if (!sec) return;
+    const key = sec.getAttribute('data-section');
+    if (!key || !DRAFT_SECTION_KEYS.includes(key as DraftSectionKey)) return;
+    if (sec.getAttribute('data-manually-edited') !== 'true') {
+      sec.setAttribute('data-manually-edited', 'true');
+      setDirty((prev) => ({ ...prev, [key as DraftSectionKey]: true }));
+    }
+  };
+
+  const fmt = (cmd: 'bold' | 'italic' | 'ul') => {
+    editorRef.current?.focus();
+    if (cmd === 'bold') document.execCommand('bold');
+    else if (cmd === 'italic') document.execCommand('italic');
+    else document.execCommand('insertUnorderedList');
+  };
+
+  const applyHL = (color: string) => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    editorRef.current?.focus();
+    const r = sel.getRangeAt(0);
+    const m = document.createElement('mark');
+    m.setAttribute('data-color', color);
+    try {
+      r.surroundContents(m);
+    } catch {
+      document.execCommand(
+        'insertHTML',
+        false,
+        `<mark data-color="${color}">${sel.toString()}</mark>`,
+      );
+    }
+  };
+
+  const sendChat = async () => {
+    const text = chatInput.trim();
+    if (!text || sending) return;
+    const root = editorRef.current;
+    const parsed = root ? parseDraftSectionsFromEditorRoot(root) : null;
+    const latest = parsed ?? draft;
+    if (!latest) return;
+    setSending(true);
+    setChatInput('');
+    setMessages((m) => [...m, { role: 'u', text }]);
+
+    const dirtySections = DRAFT_SECTION_KEYS.filter((k) => dirty[k]);
+
+    try {
+      const res = await fetch('/api/assessment-builder/refine-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assessmentId: assessment.id,
+          userMessage: text,
+          draft: latest,
+          dirtySections,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Refine failed');
+
+      const merged = data.draft as DraftContent;
+      setDraft(merged);
+      applyDraftToEditor(merged);
+
+      const replyText = typeof data.reply === 'string' ? data.reply : '';
+      setMessages((m) => [...m, { role: 'a', html: escapeHtmlText(replyText) }]);
+
+      const sug = data.suggestions as Partial<Record<DraftSectionKey, string>> | undefined;
+      if (sug) {
+        for (const k of DRAFT_SECTION_KEYS) {
+          const html = sug[k];
+          if (html && dirty[k]) {
+            setMessages((m) => [...m, { role: 'a', kind: 'suggestion', section: k, html }]);
+          }
+        }
+      }
+
+      const next = refineRound + 1;
+      setRefineRound(next);
+      if (next === 1) {
+        setTimeout(() => setMessages((m) => [...m, { role: 'a', html: Q2_HTML }]), 500);
+      } else if (next === 2) {
+        setTimeout(() => setMessages((m) => [...m, { role: 'a', html: CLOSING_HTML }]), 500);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessages((m) => [
+        ...m,
+        {
+          role: 'a',
+          html: 'Something went wrong updating the draft. Please try again.',
+        },
+      ]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const applySuggestion = (section: DraftSectionKey, html: string) => {
+    const el = editorRef.current?.querySelector(`[data-section="${section}"]`);
+    if (el) {
+      el.innerHTML = html;
+      el.setAttribute('data-manually-edited', 'true');
+    }
+    setDirty((d) => ({ ...d, [section]: true }));
+    const root = editorRef.current;
+    if (root) {
+      const parsed = parseDraftSectionsFromEditorRoot(root);
+      if (parsed) {
+        setDraft(parsed);
+        void persistDraft(parsed);
+      }
+    }
+    setMessages((m) =>
+      m.filter(
+        (x) =>
+          !(
+            x.role === 'a' &&
+            'kind' in x &&
+            x.kind === 'suggestion' &&
+            x.section === section
+          ),
+      ),
+    );
+  };
+
   const stk = assessment.stakeholders.length;
   const docs = assessment.documents.length;
+  const showShimmer = pipelinePhase !== 'ready' && pipelinePhase !== 'error';
+  const showDoc = pipelinePhase === 'ready' && draft;
 
   return (
     <div className="ab-builder-root">
@@ -178,16 +482,65 @@ export function AssessmentBuilderWorkspace({ assessment }: { assessment: Workspa
               </div>
             </div>
           </div>
-          <div className="ab-msgs" aria-label="SEI Guide messages" />
+          <div className="ab-msgs" aria-label="SEI Guide messages">
+            {messages.map((msg, i) => {
+              if (msg.role === 'a' && 'kind' in msg && msg.kind === 'suggestion') {
+                return (
+                  <div key={i} className="ab-msg-row">
+                    <span className="ab-msg-who ab-msg-who-a">SEI Guide</span>
+                    <div className="ab-sug-card">
+                      <div className="ab-sug-lbl">Suggested change ({msg.section})</div>
+                      <div className="ab-sug-body" dangerouslySetInnerHTML={{ __html: msg.html }} />
+                      <button
+                        type="button"
+                        className="ab-sug-apply"
+                        onClick={() => applySuggestion(msg.section, msg.html)}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+              if (msg.role === 'a') {
+                return (
+                  <div key={i} className="ab-msg-row">
+                    <span className="ab-msg-who ab-msg-who-a">SEI Guide</span>
+                    <div className="ab-bubble ab-bubble-a" dangerouslySetInnerHTML={{ __html: msg.html }} />
+                  </div>
+                );
+              }
+              return (
+                <div key={i} className="ab-msg-row ab-msg-row-u">
+                  <span className="ab-msg-who ab-msg-who-u">You</span>
+                  <div className="ab-bubble ab-bubble-u">{msg.text}</div>
+                </div>
+              );
+            })}
+            <div ref={msgsEndRef} />
+          </div>
           <div className="ab-chat-footer">
             <div className="ab-chat-wrap">
               <textarea
-                placeholder="Draft generation coming soon…"
-                disabled
+                placeholder={pipelinePhase === 'ready' ? 'Message SEI Guide…' : 'Preparing draft…'}
+                disabled={pipelinePhase !== 'ready' || sending}
                 rows={1}
-                readOnly
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void sendChat();
+                  }
+                }}
               />
-              <button type="button" className="ab-send-btn" disabled aria-label="Send">
+              <button
+                type="button"
+                className="ab-send-btn ab-send-btn-on"
+                disabled={pipelinePhase !== 'ready' || sending || !chatInput.trim()}
+                aria-label="Send"
+                onClick={() => void sendChat()}
+              >
                 <svg
                   width="12"
                   height="12"
@@ -208,54 +561,97 @@ export function AssessmentBuilderWorkspace({ assessment }: { assessment: Workspa
       </div>
 
       <div className="ab-canvas">
-        <div className="ab-shimmer">
-          <div className="ab-shimmer-doc">
-            <div className="ab-shim-page">
-              <div className="ab-shimmer-tbar" style={{ margin: '-44px -52px 28px' }}>
-                <div className="ab-sh-ghost" style={{ width: 14, height: 14 }} />
-                <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
-                <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
-                <div style={{ width: 1, height: 16, background: '#e0dbd5', margin: '0 4px' }} />
-                <div className="ab-sh-ghost" style={{ width: 55, height: 10 }} />
-                <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
-                  <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(255,210,0,.3)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(78,203,141,.22)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(232,93,117,.2)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(80,150,255,.2)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(155,109,255,.2)' }} />
+        {pipelinePhase === 'error' && (
+          <div className="ab-pipeline-err">
+            Draft generation failed. Check uploads and try reloading the page.
+          </div>
+        )}
+        {showShimmer && (
+          <div className="ab-shimmer">
+            <div className="ab-shimmer-doc">
+              <div className="ab-shim-page">
+                <div className="ab-shimmer-tbar" style={{ margin: '-44px -52px 28px' }}>
+                  <div className="ab-sh-ghost" style={{ width: 14, height: 14 }} />
+                  <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
+                  <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
+                  <div style={{ width: 1, height: 16, background: '#e0dbd5', margin: '0 4px' }} />
+                  <div className="ab-sh-ghost" style={{ width: 55, height: 10 }} />
+                  <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(255,210,0,.3)' }} />
+                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(78,203,141,.22)' }} />
+                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(232,93,117,.2)' }} />
+                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(80,150,255,.2)' }} />
+                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(155,109,255,.2)' }} />
+                  </div>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                    <div className="ab-sh-ghost" style={{ width: 38, height: 10 }} />
+                    <div
+                      style={{
+                        width: 88,
+                        height: 26,
+                        borderRadius: 6,
+                        background: 'linear-gradient(135deg,rgba(232,93,117,.3),rgba(155,109,255,.3))',
+                      }}
+                    />
+                  </div>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                  <div className="ab-sh-ghost" style={{ width: 38, height: 10 }} />
-                  <div
-                    style={{
-                      width: 88,
-                      height: 26,
-                      borderRadius: 6,
-                      background: 'linear-gradient(135deg,rgba(232,93,117,.3),rgba(155,109,255,.3))',
-                    }}
-                  />
-                </div>
+                <div className="ab-sl" style={{ height: 8, width: '40%', marginBottom: 10 }} />
+                <div className="ab-sl" style={{ height: 32, width: '64%', marginBottom: 6 }} />
+                <div className="ab-sl" style={{ height: 10, width: '40%', marginBottom: 24 }} />
+                <div style={{ height: 2, background: '#f0ece8', marginBottom: 20, borderRadius: 1 }} />
+                <div className="ab-sl" style={{ height: 12, width: '36%', marginBottom: 12 }} />
+                <div className="ab-sl" style={{ height: 8, width: '26%', marginBottom: 10 }} />
+                <div className="ab-sl" style={{ height: 9, width: '92%', marginBottom: 7 }} />
+                <div className="ab-sl" style={{ height: 9, width: '85%', marginBottom: 7 }} />
+                <div className="ab-sl" style={{ height: 9, width: '88%', marginBottom: 7 }} />
+                <div className="ab-sl" style={{ height: 9, width: '78%', marginBottom: 16 }} />
               </div>
-              <div className="ab-sl" style={{ height: 8, width: '40%', marginBottom: 10 }} />
-              <div className="ab-sl" style={{ height: 32, width: '64%', marginBottom: 6 }} />
-              <div className="ab-sl" style={{ height: 10, width: '40%', marginBottom: 24 }} />
-              <div style={{ height: 2, background: '#f0ece8', marginBottom: 20, borderRadius: 1 }} />
-              <div className="ab-sl" style={{ height: 12, width: '36%', marginBottom: 12 }} />
-              <div className="ab-sl" style={{ height: 8, width: '26%', marginBottom: 10 }} />
-              <div className="ab-sl" style={{ height: 9, width: '92%', marginBottom: 7 }} />
-              <div className="ab-sl" style={{ height: 9, width: '85%', marginBottom: 7 }} />
-              <div className="ab-sl" style={{ height: 9, width: '88%', marginBottom: 7 }} />
-              <div className="ab-sl" style={{ height: 9, width: '78%', marginBottom: 16 }} />
-              <div className="ab-sl" style={{ height: 12, width: '42%', marginBottom: 12 }} />
-              <div className="ab-sl" style={{ height: 9, width: '90%', marginBottom: 7 }} />
-              <div className="ab-sl" style={{ height: 9, width: '82%', marginBottom: 7 }} />
-              <div className="ab-sl" style={{ height: 9, width: '86%', marginBottom: 16 }} />
-              <div className="ab-sl" style={{ height: 12, width: '48%', marginBottom: 12 }} />
-              <div className="ab-sl" style={{ height: 9, width: '88%', marginBottom: 7 }} />
-              <div className="ab-sl" style={{ height: 9, width: '74%' }} />
             </div>
           </div>
-        </div>
+        )}
+
+        {showDoc && (
+          <div className="ab-live">
+            <div className="ab-escroll">
+              <div className="ab-docpage">
+                <div className="ab-tbar">
+                  <button type="button" className="ab-tb" onClick={() => fmt('bold')} title="Bold">
+                    <b>B</b>
+                  </button>
+                  <button type="button" className="ab-tb" onClick={() => fmt('italic')} title="Italic">
+                    <i>I</i>
+                  </button>
+                  <button type="button" className="ab-tb" onClick={() => fmt('ul')} title="Bullets">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="8" y1="6" x2="21" y2="6" />
+                      <line x1="8" y1="12" x2="21" y2="12" />
+                      <line x1="8" y1="18" x2="21" y2="18" />
+                      <line x1="3" y1="6" x2="3.01" y2="6" />
+                      <line x1="3" y1="12" x2="3.01" y2="12" />
+                      <line x1="3" y1="18" x2="3.01" y2="18" />
+                    </svg>
+                  </button>
+                  <div className="ab-tb-div" />
+                  <span className="ab-hl-lbl">Highlight</span>
+                  <button type="button" className="ab-hl" style={{ background: 'rgba(255,210,0,.75)' }} aria-label="Yellow" onClick={() => applyHL('yellow')} />
+                  <button type="button" className="ab-hl" style={{ background: 'rgba(78,203,141,.65)' }} aria-label="Green" onClick={() => applyHL('green')} />
+                  <button type="button" className="ab-hl" style={{ background: 'rgba(232,93,117,.6)' }} aria-label="Red" onClick={() => applyHL('red')} />
+                  <button type="button" className="ab-hl" style={{ background: 'rgba(80,150,255,.6)' }} aria-label="Blue" onClick={() => applyHL('blue')} />
+                  <button type="button" className="ab-hl" style={{ background: 'rgba(155,109,255,.6)' }} aria-label="Purple" onClick={() => applyHL('purple')} />
+                </div>
+                <div
+                  ref={editorRef}
+                  className="ab-doc-editor"
+                  contentEditable
+                  suppressContentEditableWarning
+                  spellCheck={false}
+                  onInput={onEditorInput}
+                  onKeyDown={onEditorKeyDown}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
