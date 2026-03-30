@@ -128,4 +128,24 @@
 
 ### Follow-ups
 
-- **Phase 4** (publish, published view, DOCX, toast): see `plan-phase4.md`; uncommitted files on disk include `app/api/assessment-builder/publish/`, `lib/assessment-builder-versioning.ts`, and workspace/CSS edits — commit when that slice is complete.
+- **Phase 4** shipped in a later session (see below).
+
+---
+
+## Session: Phase 4 — publish summary, published view, DOCX, restore (2026-03-30)
+
+### What shipped
+
+- **`assessment_versions.summary`** in Prisma + migration; **`draftSummaryOneLine`** from Discovery Findings (120 chars); publish writes summary on each version row.
+- **`getPublishedViewData`** for the published route.
+- **`docx`** package, **`lib/assessment-builder-docx.ts`** (`buildAssessmentDocx`, `packAssessmentDocx`, `discoveryAssessmentFilename`), smoke tests.
+- **APIs**: `POST /api/assessment-builder/restore-version`, `POST /api/assessment-builder/export-docx` (attachment `[ClientName]-Discovery-Assessment.docx`).
+- **UI**: `FinalizeToast`, **`/guide/assessment-builder/[id]/published`** with **`AssessmentPublishedView`** — dark nav `#1e1130`, read-only document, 260px history `#faf9f7`, purple/gray dot timeline, restore links, Finalize & Download + toast after download.
+
+### Verification
+
+- `npm run build` and `npm test` — green after published UI.
+
+### Database
+
+- Run migration (or Supabase `ALTER TABLE assessment_versions ADD COLUMN summary TEXT`) before relying on summary in production.

@@ -1,6 +1,7 @@
 import type { DraftContent } from '@/lib/assessment-builder-draft-types';
 import {
   buildAssessmentDocx,
+  discoveryAssessmentFilename,
   packAssessmentDocx,
   paragraphsFromSectionHtml,
   textRunsFromHtmlFragment,
@@ -27,6 +28,13 @@ describe('paragraphsFromSectionHtml', () => {
   it('creates bullet paragraphs for list items', () => {
     const ps = paragraphsFromSectionHtml('<ul><li>One</li><li>Two</li></ul>');
     expect(ps.length).toBe(2);
+  });
+});
+
+describe('discoveryAssessmentFilename', () => {
+  it('sanitizes client name for download', () => {
+    expect(discoveryAssessmentFilename('Acme Corp')).toBe('Acme Corp-Discovery-Assessment.docx');
+    expect(discoveryAssessmentFilename('Bad<>Name!')).toBe('BadName-Discovery-Assessment.docx');
   });
 });
 
