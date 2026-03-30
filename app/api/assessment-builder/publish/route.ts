@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { STUB_USER_ID } from '@/lib/assessment-builder-stub-user';
 import { parseDraftObject } from '@/lib/assessment-builder-draft-schema';
-import { nextPublishVersion } from '@/lib/assessment-builder-versioning';
+import { draftSummaryOneLine, nextPublishVersion } from '@/lib/assessment-builder-versioning';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         select: { version_number: true },
       });
       const versionNumber = nextPublishVersion(latest?.version_number);
+      const summary = draftSummaryOneLine(draft);
 
       await tx.assessments.update({
         where: { id: assessmentId },
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
           assessment_id: assessmentId,
           version_number: versionNumber,
           content_json: draft as object,
+          summary,
           created_by: STUB_USER_ID,
         },
       });
