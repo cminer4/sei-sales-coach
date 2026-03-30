@@ -17,7 +17,7 @@ status: approved
 
 ## Summary
 
-The **Assessment Builder** is an internal **Builder**-type tool on SEI's Agent Platform. Consultants supply client context (name, stakeholders, brief, uploaded transcripts). The **SEI Guide** agent generates a structured Discovery-phase deliverable set. The consultant edits the draft in a **live `contenteditable` document canvas** (no ProseMirror, Tiptap, or Slate), then **publishes** and **downloads** a `.docx`. **Phase 1** covers dashboard (seed data), config + Supabase persistence, RAG-backed draft generation, clarifying Q loop with update cards, publish flow with compile animation, published view with version history, and export. **Phase 2** defers real-time collaboration, multi-user comments, version diffing, and transcript PDF parsing beyond existing extract paths.
+The **Assessment Builder** is an internal **Builder**-type tool on SEI's Agent Platform. Consultants supply client context (name, stakeholders, brief, uploaded transcripts). The **SEI Guide** agent generates a structured Discovery-phase deliverable set. The consultant edits the draft in a **live `contenteditable` document canvas** (no ProseMirror, Tiptap, or Slate), then **publishes** and **downloads** a `.docx`. **Phase 1** covers dashboard (seed data), config + Supabase persistence, RAG-backed draft generation, clarifying Q loop with update cards, publish flow (inline button loading; single DB transaction for `draft_content`, status, and version row), published view with version history, and export. **Phase 2** defers real-time collaboration, multi-user comments, version diffing, and transcript PDF parsing beyond existing extract paths.
 
 **Visual system (non-negotiable)**: **56px dark sidenav** only (`#1e1130`, accent `#9b6dff`). **All other surfaces are light** (`#f7f6f4` continuous across config and chat; document canvas shell `#e8e5e0`, page `#fff`). **Typography**: DM Serif Display (document headings, page titles), DM Sans (UI). **Primary CTA**: gradient `#e85d75` to `#9b6dff`. Match **`public/prototypes/sei-assessment-builder-v8.html`** for interaction timing, copy, and component behavior.
 
@@ -115,18 +115,19 @@ A **document drawer** (light: bg `#f9f8f6`, header `#f3f0f8`) **drops from the t
 1. **Given** multiple uploaded docs, **When** the user opens doc pills, **Then** the content for the selected source switches without closing the drawer.
 2. **Given** the drawer is collapsed, **When** the user opens the project header, **Then** the drawer animates to the specified height proportion.
 
-### User Story 7 - Publish: compile overlay, published view, version history (Priority: P1)
+### User Story 7 - Publish: save, published view, version history (Priority: P1)
 
-**Publish** shows a **full-screen compile overlay**: dark background, **5 rows** animate sequentially (spin → check, **650ms** processing, **260ms** gap), **progress bar** fills proportionally. On complete: **"Draft ready"** → **800ms** → navigate to **`/guide/assessment-builder/[id]/published`**. **Published view**: **read-only** document left; **260px** version history **right** (dot timeline; current version **purple dot + glow**; older versions have **restore** links per prototype).
+**Publish Draft** shows **inline loading** on the button only (**spinner**; **no** full-screen overlay, **no** sequential step animation). The client sends the **current editor content** at click time (structured section HTML from the live DOM) so publish does **not** depend on debounced auto-save alone. The server runs **one transaction**: update **`assessments.draft_content`** and **`status`** (`draft_ready`), insert **`assessment_versions`**, then respond. On success: navigate to **`/guide/assessment-builder/[id]/published`**. **Published view** (tokens per **`sei-assessment-builder-v8.html`**): **dark top bar** `#1e1130` (Back to edit, version badge, Finalize & Download); **read-only** document left (same typography as builder, not `contenteditable`); **260px** version history **right**, panel background **`#faf9f7`** (dot timeline; current version **purple dot + glow**; one-line **summary** per version; older versions have **restore** links).
 
 **Why this priority**: Delivers client-ready milestone and auditability.
 
-**Independent Test**: Publish flow with stubbed compile; verify navigation and read-only mode.
+**Independent Test**: Publish with live editor edits; verify DB transaction, navigation, and read-only mode.
 
 **Acceptance Scenarios**:
 
-1. **Given** the user clicks Publish, **When** the overlay runs, **Then** five steps complete in order with the specified timing pattern.
+1. **Given** the user clicks **Publish Draft**, **When** the request is in flight, **Then** the button shows a loading state and is not double-submittable; **no** full-screen compile overlay appears.
 2. **Given** publish completes, **When** the published page loads, **Then** version history shows at least the published version as current.
+3. **Given** unsaved-in-auto-save edits exist in the editor, **When** the user publishes, **Then** the persisted snapshot matches **current editor content** (server updates `draft_content` from the publish request body).
 
 ### User Story 8 - Finalize and download DOCX (Priority: P1)
 

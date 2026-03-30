@@ -37,7 +37,7 @@ We will deliver value in **layers** so something is demoable early:
 
 5. **Refine loop** — **Chat** with scripted **SEI Guide** behavior; **`/api/refine-section`** updates sections. **Decision 4**: untouched sections get **direct** updates; **dirty** sections get **suggestion cards** with **Apply**. Outcome: consultants keep control when they have already edited copy.
 
-6. **Publish and ship** — **Compile overlay** with timed steps, **published** read-only view, **version timeline** with **restore**, **`/api/export-docx`** and success **toast**. Outcome: sign-off moment plus an offline file for the client.
+6. **Publish and ship** — **Publish Draft** with **inline button loading** (no full-screen compile overlay), **published** read-only view, **version timeline** with **restore**, export API and success **toast**. Outcome: sign-off moment plus an offline file for the client.
 
 7. **Follow-on slice** — **Document drawer** (top drop, pills): scheduled as **P2** but treated as **core** for a later milestone per design.
 
@@ -146,7 +146,7 @@ We will deliver value in **layers** so something is demoable early:
 - Schema, Storage uploads (enforce **10MB / 25MB** per **Decision 6**), dashboard + new assessment + builder shell with shimmer.
 - Extract → chunk → embed → RAG → generate-draft (Claude JSON).
 - Contenteditable + toolbar + manual-edit tracking + refine (clean + dirty paths).
-- Publish overlay, published page, versions, export-docx, toast.
+- Publish (spinner on button), published page, versions, export-docx, toast.
 
 **Deliverable**: End-to-end path matches **SC-003**; internal demo on preview.
 
@@ -221,6 +221,12 @@ We will deliver value in **layers** so something is demoable early:
 - Advanced PDF layout recovery beyond current extractors.
 - Non-English UI.
 - **Document drawer** in the first MVP slice if you strictly timebox P2 (still planned as core).
+
+---
+
+### Phase 4: Publish, version history, DOCX (detailed plan)
+
+See **[plan-phase4.md](./plan-phase4.md)** — publish transaction, published read-only view, version timeline with restore, `/api/assessment-builder/export-docx`, success toast, and `assessment_versions.summary` migration notes.
 
 ---
 

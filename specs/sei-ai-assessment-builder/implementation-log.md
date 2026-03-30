@@ -103,3 +103,29 @@
 - `lib/assessment-builder-*.ts`, `lib/prompts.ts`, `prisma/schema.prisma`, `prisma/migrations/20260328120000_add_assessment_draft_content/migration.sql`
 - `app/api/assessment-builder/extract|generate-draft|refine-section|save-draft/route.ts`
 - `components/assessment-builder/AssessmentBuilderWorkspace.tsx`, `app/guide/assessment-builder/assessment-builder.css`, `[id]/page.tsx`, `lib/assessment-builder-queries.ts`
+
+---
+
+## Session: Phase 3 verification + embeddings test fix (2026-03-30)
+
+### Context
+
+**Plan (`specs/sei-ai-assessment-builder/plan.md`)** uses "Phase 1" for the full MVP slice including pipeline + builder; **implementation log** previously labeled **draft pipeline + builder UX** as "Phase 3." That work was already merged in prior commits. This session **verified** build and tests and fixed a **regression** in the embedding test suite.
+
+### What shipped
+
+- **`lib/embeddings.ts`**: Lazy OpenAI client creation — avoids throwing when the module loads without `OPENAI_API_KEY` (Jest, static analysis). First `embedText()` call still requires a real key in production.
+- **`lib/__tests__/embeddings.test.ts`**: Mock the OpenAI SDK so the test **does not call the network** and does not require secrets in CI.
+
+### Verification
+
+- `npm run build` — success.
+- `npm test` — 13 suites, 46 tests passing.
+
+### Decisions
+
+- **No `ensure:build` script** in this repo; used `npm run build` per project `package.json`.
+
+### Follow-ups
+
+- **Phase 4** (publish, published view, DOCX, toast): see `plan-phase4.md`; uncommitted files on disk include `app/api/assessment-builder/publish/`, `lib/assessment-builder-versioning.ts`, and workspace/CSS edits — commit when that slice is complete.

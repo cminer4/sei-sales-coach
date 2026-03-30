@@ -16,7 +16,7 @@ When **Alex**, an internal consultant, needs to turn Discovery findings into a c
 
 6. **Open the document drawer** when they need source material: a light panel **drops down from the top** (not up from the bottom) with speaker-labeled lines and document pills to switch sources without losing context. This is a **core feature** for the product; it **may ship in the next phase** for schedule reasons, but it belongs in the roadmap as essential, not optional forever.
 
-7. **Publish** when satisfied: a full-screen **compile moment** runs through five clear steps with checkmarks (like installing software or running a checklist), then Alex lands on a **published** view: document on the left, **version history** on the right with a simple timeline (like Google Docs version history, but lighter). They can restore an older version if needed.
+7. **Publish** when satisfied: Alex clicks **Publish Draft**. The button shows a **loading spinner** (no full-screen overlay, no step-by-step animation). The app saves the **current document from the live editor** in one server transaction (status + version row), then navigates to a **published** view: read-only document on the left, **version history** on the right with a simple timeline (like Google Docs version history, but lighter). They can restore an older version if needed.
 
 8. **Download** the final Word file: a brief **confirmation toast** appears (bottom-center, easy to notice without blocking the page), then they have a `.docx` to share with the client.
 
@@ -88,19 +88,19 @@ If something goes wrong (a file could not be read, or the assistant returns unus
 
 ---
 
-#### Screen: Publish compile overlay
+#### Screen: Publish in progress (builder)
 
-**Purpose**: Signal that something important is happening and that the output is being finalized.
+**Purpose**: Confirm publish is running without blocking the whole workspace or distracting from the document.
 
 **Key Elements**:
 
-- **Full-screen dark overlay**: Focus and gravitas — like a full-screen export or print progress in desktop apps.
-- **Five sequential steps**: Each row completes with a check, with deliberate pacing so it feels thorough, not rushed.
-- **Progress bar**: Fills in proportion so progress feels honest.
+- **Publish Draft button**: Shows an **inline loading spinner** while the request runs; the button is **disabled** so double-submit is prevented. **No** full-screen overlay and **no** sequential step animation.
+- **Authoritative save**: The client sends the **current editor content** at click time (structured section HTML from the live DOM), so publish does **not** rely on debounced auto-save having flushed yet.
+- **Server**: One **database transaction** — update assessment `draft_content` and status, then insert a **version** row — then respond so the client can navigate.
 
-**User Actions**: Wait (primary action is passive); optional cancel only if product allows (spec emphasizes completion flow).
+**User Actions**: Wait on the button (primary action is still the single control).
 
-**Success State**: Brief "Draft ready" beat, then navigation to the published view.
+**Success State**: Navigation to the published view (`/guide/assessment-builder/[id]/published`).
 
 **Error State**: If publish fails, clear message and return to editable state without losing work.
 
@@ -112,8 +112,9 @@ If something goes wrong (a file could not be read, or the assistant returns unus
 
 **Key Elements**:
 
-- **Read-only document**: Same structure as the builder but not editable — prevents accidental edits during sign-off.
-- **Version timeline** (fixed-width column): Dots on a line; current version highlighted (purple accent); older versions offer **restore** where allowed.
+- **Top bar** (prototype **`sei-assessment-builder-v8.html`**): Dark background **`#1e1130`** — **Back to edit**, version badge (e.g. Draft v1.0), **Finalize & Download**.
+- **Read-only document** (left): Same typography and layout as the builder but **not** contenteditable — white page.
+- **Version timeline** (**260px** column, background **`#faf9f7`**): Dots on a line; **current** version with purple accent and glow; **older** versions with gray dots. Each row: version label, timestamp, one-line **summary**. Older rows: **Restore this version** (writes that snapshot to draft and returns to the builder).
 
 **User Actions**: Read, compare mentally across versions, restore if needed, proceed to download.
 
@@ -129,7 +130,7 @@ If something goes wrong (a file could not be read, or the assistant returns unus
 
 **Key Elements**:
 
-- **Fixed bottom-center toast**: Dark panel, short success copy, optional client/version subtitle, auto-dismiss after a few seconds — like "Saved" in Notion or Drive.
+- **Fixed bottom-center toast**: Background **`#1a1a2e`**, border **`1px solid rgba(78, 203, 141, 0.35)`**, radius **10px**, green checkmark, title **Document finalized and downloaded**, subtitle with client name and version, **auto-dismiss ~3200ms**.
 
 **User Actions**: Dismiss naturally by waiting, or continue working.
 
@@ -158,7 +159,7 @@ If something goes wrong (a file could not be read, or the assistant returns unus
 - **Skeleton loading** (like **Facebook** or **LinkedIn** feeds): Shimmer while the first draft is prepared.
 - **Assistant with structured follow-ups** (like **ChatGPT** project instructions): Short intro, 2–3 targeted questions, then handoff to publish.
 - **Inline "what changed" cards** (like **GitHub** or **Figma** activity): Each answer produces a visible summary tied to a section.
-- **Full-screen progress** (like **macOS** installer or **Figma** export): Publish overlay with sequential checks.
+- **Inline button loading** on **Publish Draft**: Spinner on the control only — no full-screen publish overlay.
 - **Version sidebar** (like **Google Docs** version history): Timeline with restore.
 - **Top-dropping drawer** (like some **email** apps’ account switchers or **Safari** tab overview — drops from top): **Document drawer** for transcripts and source material, not a bottom sheet.
 
@@ -225,10 +226,20 @@ No app-wide auth in v1; Assessment Builder API routes are **open**; **`created_b
 
 ---
 
+**Decision 8: Publish loading pattern (Phase 4)**
+
+- **Chosen**: **Inline spinner on Publish Draft** — no full-screen overlay, no animated checklist.
+- **Why**: Faster perceived completion, less interruption while the document stays visible; still blocks double-submit via disabled + busy state.
+- **Save semantics**: Publish must persist **live editor content** at click time (not only what last auto-save wrote).
+
+**Status**: **Agreed** — supersedes any earlier design exploration that described a full-screen compile overlay.
+
+---
+
 ### Accessibility Considerations
 
 - **Keyboard navigation**: All primary actions (New Assessment, Create Draft, Publish, Download, **Apply** on suggestion cards) reachable without a mouse; focus moves logically from form fields to document to chat.
-- **Screen readers**: Table headers and filters announced; status badges tied to clear text (not color alone); publish steps read as a live progress region during the overlay.
+- **Screen readers**: Table headers and filters announced; status badges tied to clear text (not color alone); **Publish Draft** exposes a **busy** state (`aria-busy` / disabled) while publishing, not a multi-step progress region.
 - **Mobile**: Internal MVP may be desktop-first; if tablets are used, ensure the two-pane layout stacks with document first or a clear tab switch between "Document" and "Guide" so nothing is unusably narrow.
 
 ---

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { DraftContent, DraftSectionKey } from '@/lib/assessment-builder-draft-types';
 import { DRAFT_SECTION_KEYS } from '@/lib/assessment-builder-draft-types';
@@ -68,6 +69,7 @@ export function AssessmentBuilderWorkspace({
 }: {
   assessment: WorkspaceAssessment;
 }) {
+  const router = useRouter();
   const [configHide, setConfigHide] = useState(false);
   const [configGone, setConfigGone] = useState(false);
   const [panelSlim, setPanelSlim] = useState(false);
@@ -85,6 +87,7 @@ export function AssessmentBuilderWorkspace({
   /** Intro + first clarifying question posted; only then may the user send (refine). */
   const [scriptSequenceComplete, setScriptSequenceComplete] = useState(false);
   const [refineRound, setRefineRound] = useState(0);
+  const [publishing, setPublishing] = useState(false);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -335,6 +338,35 @@ export function AssessmentBuilderWorkspace({
       ]);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    const root = editorRef.current;
+    if (!root || publishing) return;
+    const parsed = parseDraftSectionsFromEditorRoot(root);
+    if (!parsed) {
+      console.error('[assessment-builder] publish: could not read sections from editor');
+      return;
+    }
+    setPublishing(true);
+    try {
+      const res = await fetch('/api/assessment-builder/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assessmentId: assessment.id,
+          draft: parsed,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('[assessment-builder] publish failed', data);
+        return;
+      }
+      router.push(`/guide/assessment-builder/${assessment.id}/published`);
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -694,6 +726,19 @@ export function AssessmentBuilderWorkspace({
                   <button type="button" className="ab-hl" style={{ background: 'rgba(232,93,117,.6)' }} aria-label="Red" onClick={() => applyHL('red')} />
                   <button type="button" className="ab-hl" style={{ background: 'rgba(80,150,255,.6)' }} aria-label="Blue" onClick={() => applyHL('blue')} />
                   <button type="button" className="ab-hl" style={{ background: 'rgba(155,109,255,.6)' }} aria-label="Purple" onClick={() => applyHL('purple')} />
+                  <div className="ab-tbar-pub">
+                    <button
+                      type="button"
+                      className="ab-publish-draft"
+                      disabled={!documentPainted || publishing}
+                      onClick={() => void handlePublish()}
+                    >
+                      {publishing ? (
+                        <span className="ab-publish-draft-spin" aria-hidden />
+                      ) : null}
+                      Publish Draft
+                    </button>
+                  </div>
                 </div>
                 <div
                   ref={editorRef}
