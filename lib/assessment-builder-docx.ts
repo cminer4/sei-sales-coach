@@ -155,3 +155,14 @@ export function buildAssessmentDocx(
 export async function packAssessmentDocx(doc: Document): Promise<Buffer> {
   return Buffer.from(await Packer.toBuffer(doc));
 }
+
+/** Safe filename for Content-Disposition: `[ClientName]-Discovery-Assessment.docx` */
+export function discoveryAssessmentFilename(clientName: string): string {
+  const safe = clientName
+    .replace(/[^a-zA-Z0-9 _-]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+  const base = safe || 'Assessment';
+  return `${base}-Discovery-Assessment.docx`;
+}
