@@ -43,3 +43,40 @@ export async function getAssessmentWorkspaceById(id: string) {
     draftContent,
   };
 }
+
+/** Published screen: assessment + versions (newest first) for stub user. */
+export type PublishedViewVersion = {
+  id: string;
+  versionNumber: string;
+  summary: string | null;
+  createdAtIso: string;
+};
+
+export type PublishedViewData = {
+  id: string;
+  clientName: string;
+  draftContent: DraftContent | null;
+  versions: PublishedViewVersion[];
+};
+
+export async function getPublishedViewData(assessmentId: string): Promise<PublishedViewData | null> {
+  const row = await prisma.assessments.findFirst({
+    where: { id: assessmentId, created_by: STUB_USER_ID },
+    include: {
+      assessment_versions: { orderBy: { created_at: 'desc' } },
+    },
+  });
+  if (!row) return null;
+  const draftContent = draftContentFromDb(row.draft_content);
+  return {
+    id: row.id,
+    clientName: row.client_name,
+    draftContent,
+    versions: row.assessment_versions.map((v) => ({
+      id: v.id,
+      versionNumber: v.version_number,
+      summary: v.summary,
+      createdAtIso: v.created_at.toISOString(),
+    })),
+  };
+}
