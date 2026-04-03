@@ -209,24 +209,6 @@ export function AssessmentBuilderWorkspace({
    * After the document is painted: prototype DEMO timing — first agent bubble after 500ms,
    * second agent bubble 900ms later (see next() in sei-assessment-builder-v8.html).
    */
-  /** Log findings HTML after DOM mutations so we can verify edits stay inside [data-section]. */
-  useEffect(() => {
-    if (!documentPainted) return;
-    const root = editorRef.current;
-    if (!root) return;
-    const obs = new MutationObserver(() => {
-      const findings = root.querySelector('[data-section="findings"]');
-      if (findings) {
-        console.log(
-          '[assessment-builder] mutation findings innerHTML',
-          findings.innerHTML.slice(0, 200),
-        );
-      }
-    });
-    obs.observe(root, { subtree: true, childList: true, characterData: true });
-    return () => obs.disconnect();
-  }, [documentPainted]);
-
   useEffect(() => {
     if (!documentPainted) return;
     scriptTimersRef.current.forEach(clearTimeout);
@@ -253,10 +235,6 @@ export function AssessmentBuilderWorkspace({
 
   const persistDraft = useCallback(
     async (d: DraftContent) => {
-      console.log('[assessment-builder] save-draft POST body (findings preview)', {
-        assessmentId: assessment.id,
-        findingsPreview: d.findings.slice(0, 200),
-      });
       await fetch('/api/assessment-builder/save-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -406,8 +384,6 @@ export function AssessmentBuilderWorkspace({
       liveDraft[key] = sec.innerHTML;
     }
     const draftPayload = liveDraft as DraftContent;
-
-    console.log('[assessment-builder] publish draft snapshot (live DOM)', draftPayload);
 
     setPublishing(true);
     try {

@@ -35,11 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No draft content' }, { status: 400 });
     }
 
-    console.log('[assessment-builder/export-docx] draft from assessments.draft_content', {
-      assessmentId,
-      findingsPreview: draft.findings.slice(0, 200),
-    });
-
     const doc = buildAssessmentDocx({ clientName: row.client_name }, draft);
     const buf = await packAssessmentDocx(doc);
     const filename = discoveryAssessmentFilename(row.client_name);

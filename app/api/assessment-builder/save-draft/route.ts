@@ -23,11 +23,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid draft payload' }, { status: 400 });
     }
 
-    console.log('[assessment-builder/save-draft] persisting draft_content', {
-      assessmentId,
-      findingsPreview: draft.findings.slice(0, 200),
-    });
-
     const saved = await persistAssessmentDraft({
       assessmentId,
       createdBy: STUB_USER_ID,

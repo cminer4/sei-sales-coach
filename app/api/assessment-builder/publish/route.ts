@@ -24,11 +24,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid draft payload' }, { status: 400 });
     }
 
-    console.log('[assessment-builder/publish] writing draft_content', {
-      assessmentId,
-      findingsPreview: draft.findings.slice(0, 200),
-    });
-
     const result = await prisma.$transaction(async (tx) => {
       const row = await tx.assessments.findFirst({
         where: { id: assessmentId, created_by: STUB_USER_ID },
