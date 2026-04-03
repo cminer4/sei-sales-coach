@@ -1153,6 +1153,20 @@
   min-height: 300px;
 }
 
+/* Root is not editable; typing happens only inside .ab-sec[contenteditable="true"] */
+.ab-doc-locked {
+  user-select: none;
+}
+
+.ab-doc-body {
+  display: block;
+}
+
+.ab-doc-editor .ab-sec[contenteditable='true'] {
+  outline: none;
+  min-height: 2em;
+}
+
 .ab-doc-editor h2 {
   font-family: var(--font-ab-serif), 'DM Serif Display', serif;
   font-size: 20px;
@@ -1397,39 +1411,21 @@
 }
 
 .ab-pub-nav {
-  height: 50px;
+  height: 44px;
   flex-shrink: 0;
-  background: #1e1130;
-  border-bottom: 1px solid rgba(120, 80, 160, 0.18);
+  background: #f9f8f6;
+  border-bottom: 1px solid #ede9e4;
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 20px;
   gap: 12px;
-}
-
-.ab-pub-nav-brand {
-  flex-shrink: 0;
-}
-
-.ab-pub-nav-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, #e85d75, #9b6dff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
 }
 
 .ab-pub-nav-title {
   flex: 1;
   font-size: 13px;
   font-weight: 500;
-  color: #c0aad8;
-  margin-left: 6px;
+  color: #1a1530;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1438,9 +1434,10 @@
 
 .ab-pub-nav-badge {
   font-size: 10px;
-  color: #4a3860;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(120, 80, 160, 0.18);
+  font-weight: 600;
+  color: #7a4dcc;
+  background: rgba(155, 109, 255, 0.08);
+  border: 1px solid rgba(155, 109, 255, 0.25);
   border-radius: 5px;
   padding: 3px 8px;
   flex-shrink: 0;
@@ -1456,20 +1453,28 @@
 .ab-pub-back {
   height: 28px;
   padding: 0 12px;
-  border-radius: 7px;
-  border: 1px solid rgba(120, 80, 160, 0.18);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
   font-family: var(--font-ab-sans), 'DM Sans', sans-serif;
   font-size: 11px;
-  color: #c0aad8;
+  font-weight: 500;
+  color: #555;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .ab-pub-back:hover {
-  color: #e8dff5;
+  background: #f5f0ff;
+  color: #7a4dcc;
+  border-color: rgba(155, 109, 255, 0.35);
 }
 
 .ab-pub-finalize {
@@ -1477,7 +1482,7 @@
   padding: 0 12px;
   background: linear-gradient(135deg, #e85d75, #9b6dff);
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   font-family: var(--font-ab-sans), 'DM Sans', sans-serif;
   font-size: 11px;
   font-weight: 500;
@@ -1486,6 +1491,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: opacity 0.15s;
 }
 
 .ab-pub-finalize:hover:not(:disabled) {

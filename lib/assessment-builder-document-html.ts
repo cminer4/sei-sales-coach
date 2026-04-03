@@ -13,18 +13,32 @@ const SECTION_META: {
   { key: 'opportunities', title: 'Opportunity Shortlist', chip: 'draft' },
 ];
 
+export type BuildDocumentHtmlOptions = {
+  /** Published / read-only: no per-section contenteditable (avoids editing on published route). */
+  readOnly?: boolean;
+};
+
 /**
- * Single contenteditable HTML document for the builder canvas (prototype #doc-editor).
+ * Section blocks: each h2 is locked; each body lives in a [data-section] div that is the only
+ * editable surface in the builder (contenteditable on the section, not the root) so execCommand
+ * and typing stay inside the section wrapper.
  */
-export function buildDocumentHtmlFromDraft(draft: DraftContent): string {
+export function buildDocumentHtmlFromDraft(
+  draft: DraftContent,
+  options?: BuildDocumentHtmlOptions,
+): string {
+  const readOnly = options?.readOnly === true;
   const blocks: string[] = [];
   for (const { key, title, chip } of SECTION_META) {
     const chipClass = chip === 'draft' ? 'sdraft' : 'sbuild';
     const chipLabel = chip === 'draft' ? 'Draft' : 'Building';
     blocks.push(
-      `<h2>${escapeHtml(title)} <span class="schip ${chipClass}" contenteditable="false">${chipLabel}</span></h2>`,
+      `<h2 contenteditable="false">${escapeHtml(title)} <span class="schip ${chipClass}" contenteditable="false">${chipLabel}</span></h2>`,
     );
-    blocks.push(`<div class="ab-sec" data-section="${key}" data-manually-edited="false">`);
+    const editableAttr = readOnly ? 'contenteditable="false"' : 'contenteditable="true"';
+    blocks.push(
+      `<div class="ab-sec" data-section="${key}" data-manually-edited="false" ${editableAttr}>`,
+    );
     blocks.push(draft[key] || '<p></p>');
     blocks.push('</div>');
   }
@@ -39,16 +53,25 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Full document body for the contenteditable canvas (prototype docpage). */
-export function buildFullEditorHtml(clientName: string, draft: DraftContent): string {
+export type BuildFullEditorHtmlOptions = BuildDocumentHtmlOptions;
+
+/** Full document body for the builder canvas (prototype docpage). */
+export function buildFullEditorHtml(
+  clientName: string,
+  draft: DraftContent,
+  options?: BuildFullEditorHtmlOptions,
+): string {
   const d = new Date();
   const sub = `${escapeHtml(clientName)} · ${d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · Confidential`;
-  return [
+  const locked = [
+    `<div class="ab-doc-locked" contenteditable="false">`,
     `<div class="ab-doc-eye">SEI Management Consulting — Discovery Assessment</div>`,
     `<div class="ab-doc-h1">AI Readiness Discovery Report</div>`,
     `<div class="ab-doc-sub">${sub}</div>`,
-    buildDocumentHtmlFromDraft(draft),
+    `</div>`,
   ].join('\n');
+  const body = `<div class="ab-doc-body" contenteditable="false">${buildDocumentHtmlFromDraft(draft, options)}</div>`;
+  return [locked, body].join('\n');
 }
 
 function parseDraftSectionsFromEditorRoot(root: HTMLElement): DraftContent | null {

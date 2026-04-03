@@ -57,6 +57,20 @@ const Q1_HTML =
 const Q2_HTML =
   'One more: <strong>any significant blockers or unresolved dependencies</strong> that came up in the sessions?';
 
+/** True when the prop has a usable draft (non-null and at least one section has visible text). */
+function isDraftContentNonEmpty(d: DraftContent | null | undefined): boolean {
+  if (d == null) return false;
+  return DRAFT_SECTION_KEYS.some((k) => {
+    const html = d[k] ?? '';
+    const text = html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > 0;
+  });
+}
+
 const CLOSING_HTML =
   'The draft is live on the right. Select any text to highlight or add a comment. When you\'re ready to finalize, hit Publish Draft.';
 
@@ -115,15 +129,27 @@ export function AssessmentBuilderWorkspace({
     };
   }, []);
 
-  /** On mount: extract then generate-draft (no user action). Shimmer stays until document is painted. */
-  useEffect(() => {
-    let cancelled = false;
+  /**
+   * When `assessment.draftContent` is already populated (saved or published), skip the pipeline.
+   * Runs before paint so we do not flash the loading shimmer.
+   */
+  useLayoutEffect(() => {
     setDocumentPainted(false);
-    setPipelinePhase('loading');
-    setDraft(null);
     setScriptSequenceComplete(false);
     setMessages([]);
+    if (isDraftContentNonEmpty(assessment.draftContent)) {
+      setDraft(assessment.draftContent!);
+      setPipelinePhase('ready');
+    } else {
+      setDraft(null);
+      setPipelinePhase('loading');
+    }
+  }, [assessment.id, assessment.draftContent]);
 
+  /** No saved draft: extract then generate-draft (no user action). Shimmer stays until document is painted. */
+  useEffect(() => {
+    if (isDraftContentNonEmpty(assessment.draftContent)) return;
+    let cancelled = false;
     async function run() {
       try {
         const ex = await fetch('/api/assessment-builder/extract', {
@@ -159,7 +185,7 @@ export function AssessmentBuilderWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [assessment.id]);
+  }, [assessment.id, assessment.draftContent]);
 
   /** Paint full document before first browser paint so the canvas is never blank. */
   useLayoutEffect(() => {
@@ -183,6 +209,24 @@ export function AssessmentBuilderWorkspace({
    * After the document is painted: prototype DEMO timing — first agent bubble after 500ms,
    * second agent bubble 900ms later (see next() in sei-assessment-builder-v8.html).
    */
+  /** Log findings HTML after DOM mutations so we can verify edits stay inside [data-section]. */
+  useEffect(() => {
+    if (!documentPainted) return;
+    const root = editorRef.current;
+    if (!root) return;
+    const obs = new MutationObserver(() => {
+      const findings = root.querySelector('[data-section="findings"]');
+      if (findings) {
+        console.log(
+          '[assessment-builder] mutation findings innerHTML',
+          findings.innerHTML.slice(0, 200),
+        );
+      }
+    });
+    obs.observe(root, { subtree: true, childList: true, characterData: true });
+    return () => obs.disconnect();
+  }, [documentPainted]);
+
   useEffect(() => {
     if (!documentPainted) return;
     scriptTimersRef.current.forEach(clearTimeout);
@@ -209,6 +253,10 @@ export function AssessmentBuilderWorkspace({
 
   const persistDraft = useCallback(
     async (d: DraftContent) => {
+      console.log('[assessment-builder] save-draft POST body (findings preview)', {
+        assessmentId: assessment.id,
+        findingsPreview: d.findings.slice(0, 200),
+      });
       await fetch('/api/assessment-builder/save-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -242,7 +290,7 @@ export function AssessmentBuilderWorkspace({
   };
 
   const fmt = (cmd: 'bold' | 'italic' | 'ul') => {
-    editorRef.current?.focus();
+    editorRef.current?.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]')?.focus();
     if (cmd === 'bold') document.execCommand('bold');
     else if (cmd === 'italic') document.execCommand('italic');
     else document.execCommand('insertUnorderedList');
@@ -251,7 +299,7 @@ export function AssessmentBuilderWorkspace({
   const applyHL = (color: string) => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return;
-    editorRef.current?.focus();
+    editorRef.current?.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]')?.focus();
     const r = sel.getRangeAt(0);
     const m = document.createElement('mark');
     m.setAttribute('data-color', color);
@@ -344,11 +392,23 @@ export function AssessmentBuilderWorkspace({
   const handlePublish = async () => {
     const root = editorRef.current;
     if (!root || publishing) return;
-    const parsed = parseDraftSectionsFromEditorRoot(root);
-    if (!parsed) {
-      console.error('[assessment-builder] publish: could not read sections from editor');
-      return;
+
+    // Snapshot at click time only from the contenteditable DOM. Do not use React `draft`
+    // state here — it is not updated on every keystroke (auto-save reads DOM separately;
+    // `draft` can lag behind manual edits until refine or other flows call setDraft).
+    const liveDraft: Partial<DraftContent> = {};
+    for (const key of DRAFT_SECTION_KEYS) {
+      const sec = root.querySelector(`[data-section="${key}"]`);
+      if (!sec) {
+        console.error('[assessment-builder] publish: missing section in DOM', key);
+        return;
+      }
+      liveDraft[key] = sec.innerHTML;
     }
+    const draftPayload = liveDraft as DraftContent;
+
+    console.log('[assessment-builder] publish draft snapshot (live DOM)', draftPayload);
+
     setPublishing(true);
     try {
       const res = await fetch('/api/assessment-builder/publish', {
@@ -356,7 +416,7 @@ export function AssessmentBuilderWorkspace({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           assessmentId: assessment.id,
-          draft: parsed,
+          draft: draftPayload,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -743,8 +803,7 @@ export function AssessmentBuilderWorkspace({
                 <div
                   ref={editorRef}
                   className="ab-doc-editor"
-                  contentEditable
-                  suppressContentEditableWarning
+                  contentEditable={false}
                   spellCheck={false}
                   onInput={onEditorInput}
                   onKeyDown={onEditorKeyDown}

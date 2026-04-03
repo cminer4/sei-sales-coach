@@ -35,7 +35,7 @@ type Props = {
 export function AssessmentPublishedView({ assessmentId, clientName, draftContent, versions }: Props) {
   const router = useRouter();
   const draft = draftContent ?? emptyDraft();
-  const html = buildFullEditorHtml(clientName, draft);
+  const html = buildFullEditorHtml(clientName, draft, { readOnly: true });
 
   const [downloading, setDownloading] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
@@ -95,9 +95,6 @@ export function AssessmentPublishedView({ assessmentId, clientName, draftContent
   return (
     <div className="ab-pub-root">
       <header className="ab-pub-nav">
-        <div className="ab-pub-nav-brand" aria-hidden>
-          <span className="ab-pub-nav-logo">S</span>
-        </div>
         <div className="ab-pub-nav-title">
           {clientName} — Discovery Assessment
         </div>
