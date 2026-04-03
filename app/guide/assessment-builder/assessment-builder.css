@@ -42,7 +42,6 @@
   gap: 4px;
   align-items: center;
   width: 100%;
-  flex: 1;
 }
 
 .ab-snav-btn {
@@ -67,20 +66,6 @@
 .ab-snav-btn.on {
   background: rgba(155, 109, 255, 0.11);
   color: #9b6dff;
-}
-
-.ab-snav-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #e85d75, #9b6dff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: #fff;
-  cursor: default;
 }
 
 /* Dashboard */
@@ -397,28 +382,30 @@
 }
 
 .ab-cfg-eye {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #9b6dff;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .ab-cfg-title {
   font-family: var(--font-ab-serif), 'DM Serif Display', serif;
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 400;
-  margin-bottom: 7px;
+  line-height: 1.2;
+  margin: 0 0 10px;
   color: #1a1530;
 }
 
 .ab-cfg-sub {
-  font-size: 13px;
-  color: #777;
-  font-weight: 300;
-  line-height: 1.6;
-  margin-bottom: 26px;
+  font-size: 14px;
+  color: #6b6580;
+  font-weight: 400;
+  line-height: 1.65;
+  margin-bottom: 28px;
+  max-width: 42em;
 }
 
 .ab-field {
@@ -428,12 +415,21 @@
 .ab-field label,
 .ab-field-label-span {
   display: block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #888;
-  margin-bottom: 6px;
+  color: #6b6580;
+  margin-bottom: 7px;
+}
+
+.ab-field-label-opt {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-variant: normal;
+  color: #9b7fc4;
 }
 
 .ab-field input,
@@ -459,8 +455,8 @@
 }
 
 .ab-field textarea {
-  resize: none;
-  height: 86px;
+  resize: vertical;
+  min-height: 100px;
   line-height: 1.55;
 }
 
@@ -507,10 +503,20 @@
   border: 1.5px dashed #ccc;
   border-radius: 8px;
   padding: 14px;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   text-align: center;
   cursor: pointer;
   transition: all 0.18s;
   background: #faf9f8;
+}
+
+.ab-upload-zone-icon {
+  flex-shrink: 0;
 }
 
 .ab-upload-zone:hover,
@@ -522,7 +528,7 @@
 .ab-upload-zone p {
   font-size: 12px;
   color: #999;
-  margin-top: 4px;
+  margin: 0;
 }
 
 .ab-upload-zone small {
@@ -1292,6 +1298,9 @@
   font-size: 12px;
   line-height: 1.6;
   font-weight: 300;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .ab-bubble-a {

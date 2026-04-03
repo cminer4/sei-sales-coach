@@ -5,19 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
 import { validateAssessmentUploadSizes } from '@/lib/assessment-builder-upload-limits';
 
-const DEFAULT_BRIEF = `Client is mid-size regional bank, ~1,200 employees. Leadership is bought in but IT and compliance are concerned about data governance. Strong interest in automating loan underwriting. Data infrastructure is fragmented.`;
+const BRIEF_PLACEHOLDER =
+  "Summarize the client's business context, known challenges, and what you're hoping AI could address. Rough notes are fine.";
 
 export function NewAssessmentForm() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [clientName, setClientName] = useState('Meridian Financial Group');
-  const [stakeholders, setStakeholders] = useState<string[]>([
-    'Dana Reyes',
-    'Tom Archuleta',
-    'Sarah Kim',
-  ]);
+  const [clientName, setClientName] = useState('');
+  const [stakeholders, setStakeholders] = useState<string[]>([]);
   const [stkInput, setStkInput] = useState('');
-  const [projectBrief, setProjectBrief] = useState(DEFAULT_BRIEF);
+  const [projectBrief, setProjectBrief] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [drag, setDrag] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -101,7 +98,7 @@ export function NewAssessmentForm() {
           ← All assessments
         </Link>
         <div className="ab-cfg-eye">New Assessment</div>
-        <h2 className="ab-cfg-title">Who are we building this for?</h2>
+        <h1 className="ab-cfg-title">Who are we building this for?</h1>
         <p className="ab-cfg-sub">
           Add what you have. Rough notes are fine, the agent will guide you through the rest
           once you&apos;re in.
@@ -115,6 +112,7 @@ export function NewAssessmentForm() {
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
             autoComplete="organization"
+            placeholder="Company or client name"
           />
         </div>
 
@@ -148,16 +146,20 @@ export function NewAssessmentForm() {
 
         <div className="ab-field">
           <label htmlFor="ab-brief">
-            Project brief{' '}
-            <span style={{ color: '#6e5490', fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>
-              — optional
-            </span>
+            Project brief <span className="ab-field-label-opt">— optional</span>
           </label>
-          <textarea id="ab-brief" value={projectBrief} onChange={(e) => setProjectBrief(e.target.value)} />
+          <textarea
+            id="ab-brief"
+            value={projectBrief}
+            onChange={(e) => setProjectBrief(e.target.value)}
+            placeholder={BRIEF_PLACEHOLDER}
+          />
         </div>
 
         <div className="ab-field">
-          <span id="ab-upload-lbl">Transcripts &amp; documents</span>
+          <span id="ab-upload-lbl" className="ab-field-label-span">
+            Transcripts &amp; documents
+          </span>
           <input
             ref={fileInputRef}
             type="file"
@@ -193,6 +195,7 @@ export function NewAssessmentForm() {
             }}
           >
             <svg
+              className="ab-upload-zone-icon"
               width="18"
               height="18"
               viewBox="0 0 24 24"
@@ -201,7 +204,7 @@ export function NewAssessmentForm() {
               strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ marginBottom: 4 }}
+              aria-hidden
             >
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
