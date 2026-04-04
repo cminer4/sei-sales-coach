@@ -536,6 +536,49 @@
   color: #bbb;
 }
 
+.ab-upload-zone-has-files {
+  min-height: auto;
+}
+
+.ab-upload-zone-files {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: stretch;
+}
+
+.ab-upload-zone-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e8e4f0;
+  border-radius: 7px;
+  padding: 6px 9px;
+  font-size: 11px;
+  text-align: left;
+}
+
+.ab-upload-zone-chip-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #444;
+}
+
+.ab-upload-zone-chip-size {
+  color: #aaa;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
 .ab-file-item {
   display: flex;
   align-items: center;

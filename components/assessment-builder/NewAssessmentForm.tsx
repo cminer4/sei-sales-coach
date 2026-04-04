@@ -22,10 +22,11 @@ export function NewAssessmentForm() {
   const [pending, setPending] = useState(false);
 
   const addFiles = useCallback((list: FileList | File[]) => {
+    const incoming = Array.from(list);
+    if (incoming.length === 0) return;
     setFiles((prev) => {
-      const next = [...prev, ...Array.from(list)];
-      const sizes = next.map((f) => f.size);
-      const v = validateAssessmentUploadSizes(sizes);
+      const next = [...prev, ...incoming];
+      const v = validateAssessmentUploadSizes(next.map((f) => f.size));
       if (!v.ok) {
         setUploadError(v.error ?? 'Invalid file size.');
         return prev;
@@ -165,17 +166,21 @@ export function NewAssessmentForm() {
             type="file"
             className="sr-only"
             multiple
-            accept=".pdf,.doc,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
             aria-labelledby="ab-upload-lbl"
             onChange={(e) => {
-              if (e.target.files?.length) addFiles(e.target.files);
-              e.target.value = '';
+              const input = e.target;
+              const selected = input.files;
+              if (selected?.length) {
+                addFiles(selected);
+              }
+              input.value = '';
             }}
           />
           <div
-            role="button"
+            role="group"
             tabIndex={0}
-            className={`ab-upload-zone ${drag ? 'ab-drag' : ''}`}
+            className={`ab-upload-zone ${drag ? 'ab-drag' : ''} ${files.length > 0 ? 'ab-upload-zone-has-files' : ''}`}
             onClick={() => fileInputRef.current?.click()}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -185,13 +190,21 @@ export function NewAssessmentForm() {
             }}
             onDragOver={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               setDrag(true);
             }}
-            onDragLeave={() => setDrag(false)}
+            onDragLeave={(e) => {
+              e.stopPropagation();
+              setDrag(false);
+            }}
             onDrop={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               setDrag(false);
-              if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+              const dropped = e.dataTransfer.files;
+              if (dropped?.length) {
+                addFiles(dropped);
+              }
             }}
           >
             <svg
@@ -212,16 +225,32 @@ export function NewAssessmentForm() {
             </svg>
             <p>Drop files here or click to upload</p>
             <small>PDF, DOCX, TXT</small>
+            {files.length > 0 ? (
+              <ul className="ab-upload-zone-files" onClick={(e) => e.stopPropagation()}>
+                {files.map((f, i) => (
+                  <li key={`${f.name}-${f.size}-${f.lastModified}-${i}`} className="ab-upload-zone-chip">
+                    <span className="ab-upload-zone-chip-name">{f.name}</span>
+                    <span className="ab-upload-zone-chip-size">
+                      {f.size < 1024 * 1024
+                        ? `${Math.max(1, Math.round(f.size / 1024))} KB`
+                        : `${(f.size / 1024 / 1024).toFixed(1)} MB`}
+                    </span>
+                    <button
+                      type="button"
+                      className="ab-chip-x"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(i);
+                      }}
+                      aria-label={`Remove ${f.name}`}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
-          {files.map((f, i) => (
-            <div key={`${f.name}-${i}`} className="ab-file-item">
-              <span className="ab-fn">{f.name}</span>
-              <span className="ab-fs">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
-              <button type="button" className="ab-chip-x" onClick={() => removeFile(i)} aria-label="Remove file">
-                ×
-              </button>
-            </div>
-          ))}
           {uploadError ? <div className="ab-upload-err">{uploadError}</div> : null}
           {fieldError ? <div className="ab-field-err">{fieldError}</div> : null}
         </div>
