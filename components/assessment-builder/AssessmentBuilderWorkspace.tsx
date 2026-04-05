@@ -1234,54 +1234,6 @@ export function AssessmentBuilderWorkspace({
               </div>
             </div>
           </div>
-          <div className={`ab-drawer ${drawerOpen ? 'open' : ''}`} aria-hidden={!drawerOpen}>
-            <div className="ab-drawer-inner">
-              <div className="ab-drawer-transcript-hdr">
-                <span className="ab-drawer-filename">
-                  {transcriptDocId
-                    ? (localAssessment.documents.find((x) => x.id === transcriptDocId)?.filename ??
-                        'Document')
-                    : 'Document'}
-                </span>
-                <button
-                  type="button"
-                  className="ab-drawer-close"
-                  aria-label="Close transcript"
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="ab-drawer-transcript-body" tabIndex={0}>
-                {docTextsLoading ? (
-                  <p className="ab-drawer-placeholder">Loading…</p>
-                ) : docTextsError ? (
-                  <p className="ab-drawer-placeholder">{docTextsError}</p>
-                ) : transcriptDocId && docTextCache && transcriptDocId in docTextCache ? (
-                  docTextCache[transcriptDocId] == null || docTextCache[transcriptDocId] === '' ? (
-                    <p className="ab-drawer-placeholder">No extracted text for this file yet.</p>
-                  ) : (
-                    parseTranscriptForDisplay(docTextCache[transcriptDocId] ?? '').map((row, i) => (
-                      <div
-                        key={i}
-                        className={
-                          row.kind === 'consultant'
-                            ? 'ab-tr-line ab-tr-consultant'
-                            : row.kind === 'blank'
-                              ? 'ab-tr-line ab-tr-blank'
-                              : 'ab-tr-line ab-tr-client'
-                        }
-                      >
-                        {row.kind === 'blank' ? '\u00a0' : row.text}
-                      </div>
-                    ))
-                  )
-                ) : (
-                  <p className="ab-drawer-placeholder">Select a document above.</p>
-                )}
-              </div>
-            </div>
-          </div>
           <div className="ab-msgs" aria-label="SEI Guide messages">
             {pipelineChecklistVisible ? (
               <div className="ab-pipeline-checklist-card" aria-live="polite">
@@ -1423,61 +1375,111 @@ export function AssessmentBuilderWorkspace({
             Draft generation failed. Check uploads and try reloading the page.
           </div>
         )}
-        {showShimmerOverlay && (
-          <div className="ab-shimmer ab-shimmer-overlay">
-            <div className="ab-shimmer-doc">
-              <div className="ab-shim-page">
-                <div className="ab-shimmer-tbar" style={{ margin: '-44px -52px 28px' }}>
-                  <div className="ab-sh-ghost" style={{ width: 14, height: 14 }} />
-                  <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
-                  <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
-                  <div style={{ width: 1, height: 16, background: '#e0dbd5', margin: '0 4px' }} />
-                  <div className="ab-sh-ghost" style={{ width: 55, height: 10 }} />
-                  <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
-                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(255,210,0,.3)' }} />
-                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(78,203,141,.22)' }} />
-                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(232,93,117,.2)' }} />
-                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(80,150,255,.2)' }} />
-                    <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(155,109,255,.2)' }} />
-                  </div>
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                    <div className="ab-sh-ghost" style={{ width: 38, height: 10 }} />
-                    <div
-                      style={{
-                        width: 88,
-                        height: 26,
-                        borderRadius: 6,
-                        background: 'linear-gradient(135deg,rgba(232,93,117,.3),rgba(155,109,255,.3))',
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="ab-sl" style={{ height: 8, width: '40%', marginBottom: 10 }} />
-                <div className="ab-sl" style={{ height: 32, width: '64%', marginBottom: 6 }} />
-                <div className="ab-sl" style={{ height: 10, width: '40%', marginBottom: 24 }} />
-                <div style={{ height: 2, background: '#f0ece8', marginBottom: 20, borderRadius: 1 }} />
-                <div className="ab-sl" style={{ height: 12, width: '36%', marginBottom: 12 }} />
-                <div className="ab-sl" style={{ height: 8, width: '26%', marginBottom: 10 }} />
-                <div className="ab-sl" style={{ height: 9, width: '92%', marginBottom: 7 }} />
-                <div className="ab-sl" style={{ height: 9, width: '85%', marginBottom: 7 }} />
-                <div className="ab-sl" style={{ height: 9, width: '88%', marginBottom: 7 }} />
-                <div className="ab-sl" style={{ height: 9, width: '78%', marginBottom: 16 }} />
+        <div className="ab-canvas-stack">
+          <div className={`ab-drawer ${drawerOpen ? 'open' : ''}`} aria-hidden={!drawerOpen}>
+            <div className="ab-drawer-inner">
+              <div className="ab-drawer-transcript-hdr">
+                <span className="ab-drawer-filename">
+                  {transcriptDocId
+                    ? (localAssessment.documents.find((x) => x.id === transcriptDocId)?.filename ??
+                        'Document')
+                    : 'Document'}
+                </span>
+                <button
+                  type="button"
+                  className="ab-drawer-close"
+                  aria-label="Close transcript"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="ab-drawer-transcript-body" tabIndex={0}>
+                {docTextsLoading ? (
+                  <p className="ab-drawer-placeholder">Loading…</p>
+                ) : docTextsError ? (
+                  <p className="ab-drawer-placeholder">{docTextsError}</p>
+                ) : transcriptDocId && docTextCache && transcriptDocId in docTextCache ? (
+                  docTextCache[transcriptDocId] == null || docTextCache[transcriptDocId] === '' ? (
+                    <p className="ab-drawer-placeholder">No extracted text for this file yet.</p>
+                  ) : (
+                    parseTranscriptForDisplay(docTextCache[transcriptDocId] ?? '').map((row, i) => (
+                      <div
+                        key={i}
+                        className={
+                          row.kind === 'consultant'
+                            ? 'ab-tr-line ab-tr-consultant'
+                            : row.kind === 'blank'
+                              ? 'ab-tr-line ab-tr-blank'
+                              : 'ab-tr-line ab-tr-client'
+                        }
+                      >
+                        {row.kind === 'blank' ? '\u00a0' : row.text}
+                      </div>
+                    ))
+                  )
+                ) : (
+                  <p className="ab-drawer-placeholder">Select a document in the chat panel.</p>
+                )}
               </div>
             </div>
           </div>
-        )}
+          <div className="ab-doc-shell">
+            {showShimmerOverlay && (
+              <div className="ab-shimmer ab-shimmer-overlay">
+                <div className="ab-shimmer-doc">
+                  <div className="ab-shim-page">
+                    <div className="ab-shimmer-tbar" style={{ margin: '-44px -52px 28px' }}>
+                      <div className="ab-sh-ghost" style={{ width: 14, height: 14 }} />
+                      <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
+                      <div className="ab-sh-ghost" style={{ width: 10, height: 14 }} />
+                      <div style={{ width: 1, height: 16, background: '#e0dbd5', margin: '0 4px' }} />
+                      <div className="ab-sh-ghost" style={{ width: 55, height: 10 }} />
+                      <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(255,210,0,.3)' }} />
+                        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(78,203,141,.22)' }} />
+                        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(232,93,117,.2)' }} />
+                        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(80,150,255,.2)' }} />
+                        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'rgba(155,109,255,.2)' }} />
+                      </div>
+                      <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                        <div className="ab-sh-ghost" style={{ width: 38, height: 10 }} />
+                        <div
+                          style={{
+                            width: 88,
+                            height: 26,
+                            borderRadius: 6,
+                            background: 'linear-gradient(135deg,rgba(232,93,117,.3),rgba(155,109,255,.3))',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="ab-sl" style={{ height: 8, width: '40%', marginBottom: 10 }} />
+                    <div className="ab-sl" style={{ height: 32, width: '64%', marginBottom: 6 }} />
+                    <div className="ab-sl" style={{ height: 10, width: '40%', marginBottom: 24 }} />
+                    <div style={{ height: 2, background: '#f0ece8', marginBottom: 20, borderRadius: 1 }} />
+                    <div className="ab-sl" style={{ height: 12, width: '36%', marginBottom: 12 }} />
+                    <div className="ab-sl" style={{ height: 8, width: '26%', marginBottom: 10 }} />
+                    <div className="ab-sl" style={{ height: 9, width: '92%', marginBottom: 7 }} />
+                    <div className="ab-sl" style={{ height: 9, width: '85%', marginBottom: 7 }} />
+                    <div className="ab-sl" style={{ height: 9, width: '88%', marginBottom: 7 }} />
+                    <div className="ab-sl" style={{ height: 9, width: '78%', marginBottom: 16 }} />
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {showLiveEditor && (
-          <div
-            className="ab-live"
-            style={{
-              opacity: documentPainted ? 1 : 0,
-              pointerEvents: documentPainted ? 'auto' : 'none',
-            }}
-            aria-hidden={!documentPainted}
-          >
-            <div className="ab-escroll">
-              <div className="ab-docpage">
+            {showLiveEditor && (
+              <div
+                className="ab-live"
+                style={{
+                  opacity: documentPainted ? 1 : 0,
+                  pointerEvents: documentPainted ? 'auto' : 'none',
+                }}
+                aria-hidden={!documentPainted}
+              >
+                <div className="ab-escroll">
+                  <div className="ab-docpage">
                 <div className="ab-tbar">
                   <button
                     type="button"
@@ -1558,6 +1560,8 @@ export function AssessmentBuilderWorkspace({
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );
