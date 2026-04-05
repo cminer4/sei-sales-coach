@@ -41,10 +41,6 @@ const SECTION_LABELS: Record<DraftSectionKey, string> = {
   opportunities: 'Opportunities',
 };
 
-function statusMsg(text: string): ChatMsg {
-  return { role: 'a', kind: 'status', text };
-}
-
 function stripHtmlPlain(s: string): string {
   return s
     .replace(/<[^>]+>/g, ' ')
@@ -118,6 +114,13 @@ function isDraftContentNonEmpty(d: DraftContent | null | undefined): boolean {
 const CLOSING_HTML =
   'The draft is live on the right. Select any text to highlight or add a comment. When you\'re ready to finalize, hit Publish Draft.';
 
+const PIPELINE_STEPS = [
+  'Reviewing uploaded documents',
+  'Extracting key information from transcripts',
+  'Retrieving SEI methodology',
+  'Building your Discovery draft',
+] as const;
+
 /**
  * Builder shell: left panel animation, document canvas with extract → generate pipeline,
  * contenteditable draft, toolbar, SEI Guide chat, refine with suggestion cards for dirty sections.
@@ -152,8 +155,12 @@ export function AssessmentBuilderWorkspace({
   const [savingCtx, setSavingCtx] = useState(false);
   const [uploadingDocs, setUploadingDocs] = useState(false);
   const [rerunBusy, setRerunBusy] = useState(false);
+  const [pipelineChecklistVisible, setPipelineChecklistVisible] = useState(false);
+  const [pipelineActiveStep, setPipelineActiveStep] = useState(0);
+  const [builderExiting, setBuilderExiting] = useState(false);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const chatTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgsEndRef = useRef<HTMLDivElement | null>(null);
   const scriptTimersRef = useRef<number[]>([]);
@@ -192,6 +199,7 @@ export function AssessmentBuilderWorkspace({
     setDocumentPainted(false);
     setScriptSequenceComplete(false);
     setMessages([]);
+    setPipelineChecklistVisible(false);
     if (isDraftContentNonEmpty(assessment.draftContent)) {
       setDraft(assessment.draftContent!);
       setPipelinePhase('ready');
@@ -206,10 +214,16 @@ export function AssessmentBuilderWorkspace({
   }, [assessment]);
 
   const executePipeline = useCallback(
-    async (opts: { cancelled: () => boolean }) => {
+    async (opts: { cancelled: () => boolean; clearChatOnStart?: boolean }) => {
       const cancelled = opts.cancelled;
+      const clearChatOnStart = opts.clearChatOnStart !== false;
       try {
-        setMessages([statusMsg('Reviewing your uploaded documents...')]);
+        if (clearChatOnStart) {
+          setMessages([]);
+        }
+        setPipelineChecklistVisible(true);
+        setPipelineActiveStep(0);
+
         const ex = await fetch('/api/assessment-builder/extract', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -217,21 +231,18 @@ export function AssessmentBuilderWorkspace({
         });
         const exJson = await ex.json();
         if (cancelled()) return;
-        setMessages((m) => [
-          ...m,
-          statusMsg('Extracting key information from transcripts...'),
-        ]);
+        setPipelineActiveStep(1);
         if (!ex.ok && exJson.errors?.length) {
           console.warn('[assessment-builder] extract warnings', exJson.errors);
         }
 
-        setMessages((m) => [...m, statusMsg('Retrieving SEI methodology context...')]);
         await new Promise<void>((r) => {
           requestAnimationFrame(() => r());
         });
         if (cancelled()) return;
-        setMessages((m) => [...m, statusMsg('Building your Discovery draft...')]);
+        setPipelineActiveStep(2);
 
+        setPipelineActiveStep(3);
         const gen = await fetch('/api/assessment-builder/generate-draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -243,17 +254,15 @@ export function AssessmentBuilderWorkspace({
         }
         if (cancelled()) return;
         const d = genJson.draft as DraftContent;
-        setMessages((m) => [
-          ...m,
-          statusMsg(
-            'Your draft is ready. I have a few questions to sharpen the content.',
-          ),
-        ]);
+        setPipelineChecklistVisible(false);
         setDraft(d);
         setPipelinePhase('ready');
       } catch (e) {
         console.error(e);
-        if (!cancelled()) setPipelinePhase('error');
+        if (!cancelled()) {
+          setPipelineChecklistVisible(false);
+          setPipelinePhase('error');
+        }
       }
     },
     [assessment.id],
@@ -263,7 +272,7 @@ export function AssessmentBuilderWorkspace({
   useEffect(() => {
     if (isDraftContentNonEmpty(assessment.draftContent)) return;
     let cancelled = false;
-    void executePipeline({ cancelled: () => cancelled });
+    void executePipeline({ cancelled: () => cancelled, clearChatOnStart: true });
     return () => {
       cancelled = true;
     };
@@ -304,10 +313,7 @@ export function AssessmentBuilderWorkspace({
     scriptTimersRef.current = [];
 
     const tIntro = window.setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        { role: 'a', html: buildIntroHtml(assessment.clientName) },
-      ]);
+      setMessages([{ role: 'a', html: buildIntroHtml(assessment.clientName) }]);
     }, 500);
     const tQ1 = window.setTimeout(() => {
       setMessages((m) => [...m, { role: 'a', html: Q1_HTML }]);
@@ -396,7 +402,7 @@ export function AssessmentBuilderWorkspace({
     setDocumentPainted(false);
     setDraft(null);
     try {
-      await executePipeline({ cancelled: () => false });
+      await executePipeline({ cancelled: () => false, clearChatOnStart: false });
     } finally {
       setRerunBusy(false);
     }
@@ -650,11 +656,16 @@ export function AssessmentBuilderWorkspace({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('[assessment-builder] publish failed', data);
+        setPublishing(false);
         return;
       }
+      setBuilderExiting(true);
+      await new Promise((r) => setTimeout(r, 280));
       router.push(`/guide/assessment-builder/${assessment.id}/published`);
-    } finally {
+    } catch (e) {
+      console.error(e);
       setPublishing(false);
+      setBuilderExiting(false);
     }
   };
 
@@ -692,13 +703,31 @@ export function AssessmentBuilderWorkspace({
 
   const stk = localAssessment.stakeholders.length;
   const docs = localAssessment.documents.length;
+  const hasDraftForUpdate =
+    isDraftContentNonEmpty(assessment.draftContent) ||
+    (draft !== null && isDraftContentNonEmpty(draft));
   const showLiveEditor = pipelinePhase === 'ready' && draft !== null;
   const showShimmerOverlay = !documentPainted && pipelinePhase !== 'error';
   const chatEnabled =
     scriptSequenceComplete && pipelinePhase === 'ready' && documentPainted;
 
+  const resizeChatTextarea = useCallback(() => {
+    const el = chatTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 18;
+    const maxH = Math.round(lineHeight * 4);
+    const next = Math.min(el.scrollHeight, maxH);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
+  }, []);
+
+  useLayoutEffect(() => {
+    resizeChatTextarea();
+  }, [chatInput, resizeChatTextarea]);
+
   return (
-    <div className="ab-builder-root">
+    <div className={`ab-builder-root ${builderExiting ? 'ab-builder-exiting' : ''}`}>
       <div className={`ab-lpanel ${panelSlim ? 'ab-lpanel-slim' : ''}`}>
         <div
           className={`ab-lpanel-cfg ${configHide ? 'ab-hide' : ''} ${configGone ? 'ab-gone' : ''}`}
@@ -844,7 +873,13 @@ export function AssessmentBuilderWorkspace({
                   disabled={rerunBusy || pipelinePhase === 'loading'}
                   onClick={() => void rerunPipeline()}
                 >
-                  {rerunBusy ? 'Running…' : 'Re-run pipeline'}
+                  {rerunBusy
+                    ? hasDraftForUpdate
+                      ? 'Updating…'
+                      : 'Running…'
+                    : hasDraftForUpdate
+                      ? 'Update Document'
+                      : 'Re-run pipeline'}
                 </button>
               </>
             ) : (
@@ -945,6 +980,29 @@ export function AssessmentBuilderWorkspace({
             </div>
           </div>
           <div className="ab-msgs" aria-label="SEI Guide messages">
+            {pipelineChecklistVisible ? (
+              <div className="ab-pipeline-checklist-card" aria-live="polite">
+                <div className="ab-pipeline-checklist-title">Preparing your draft</div>
+                <ul className="ab-pipeline-checklist-list">
+                  {PIPELINE_STEPS.map((label, i) => {
+                    const done = i < pipelineActiveStep;
+                    const active = i === pipelineActiveStep;
+                    let icon = '○';
+                    if (done) icon = '✓';
+                    else if (active) icon = '→';
+                    return (
+                      <li
+                        key={label}
+                        className={`${done ? 'done' : ''} ${active ? 'active' : ''}`.trim()}
+                      >
+                        <span className="ab-pipeline-checklist-icon">{icon}</span>
+                        <span>{label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
             {messages.map((msg, i) => {
               if (msg.role === 'a' && 'kind' in msg && msg.kind === 'update') {
                 return (
@@ -1010,6 +1068,7 @@ export function AssessmentBuilderWorkspace({
           <div className="ab-chat-footer">
             <div className="ab-chat-wrap">
               <textarea
+                ref={chatTextareaRef}
                 placeholder={
                   !documentPainted || pipelinePhase === 'loading'
                     ? 'Preparing draft…'
@@ -1021,6 +1080,7 @@ export function AssessmentBuilderWorkspace({
                 rows={1}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
+                onInput={() => resizeChatTextarea()}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

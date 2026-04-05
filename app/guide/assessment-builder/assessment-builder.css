@@ -846,6 +846,38 @@
   cursor: not-allowed;
 }
 
+.ab-btn-primary.ab-btn-creating {
+  animation: ab-btn-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes ab-btn-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.88;
+    filter: brightness(1.04);
+  }
+}
+
+.ab-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: ab-spin 0.65s linear infinite;
+}
+
+@keyframes ab-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .ab-btn-save-exit {
   padding: 12px 16px;
   background: #fff;
@@ -878,6 +910,27 @@
 }
 
 /* ── Builder workspace (sei-assessment-builder-v8.html #builder) ── */
+.ab-workspace-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ab-workspace-page > .ab-new {
+  min-height: 0;
+  height: 100%;
+}
+
+.ab-workspace-page > .ab-dash {
+  min-height: 0;
+  height: 100%;
+}
+
 .ab-builder-root {
   --ab-chat: 320px;
   display: flex;
@@ -885,6 +938,14 @@
   min-height: 0;
   width: 100%;
   overflow: hidden;
+  transition:
+    opacity 0.28s ease,
+    filter 0.28s ease;
+}
+
+.ab-builder-root.ab-builder-exiting {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .ab-lpanel {
@@ -1107,11 +1168,14 @@
   color: #1a1530;
   resize: none;
   min-height: 18px;
-  max-height: 80px;
+  max-height: none;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
+  overflow-y: hidden;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .ab-send-btn {
@@ -1609,6 +1673,76 @@
   max-width: 92%;
 }
 
+.ab-pipeline-checklist-card {
+  background: #fff;
+  border: 1px solid #e8e4f0;
+  border-radius: 10px;
+  padding: 10px 12px 12px;
+  margin-bottom: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  align-self: flex-start;
+  max-width: 92%;
+}
+
+.ab-pipeline-checklist-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9b6dff;
+  margin-bottom: 8px;
+}
+
+.ab-pipeline-checklist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ab-pipeline-checklist-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #999;
+  font-weight: 400;
+}
+
+.ab-pipeline-checklist-list li.done {
+  color: #555;
+}
+
+.ab-pipeline-checklist-list li.active {
+  color: #1a1530;
+  font-weight: 500;
+}
+
+.ab-pipeline-checklist-icon {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ab-pipeline-checklist-list li.active .ab-pipeline-checklist-icon {
+  animation: ab-pipeline-pulse 1s ease-in-out infinite;
+}
+
+@keyframes ab-pipeline-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 .ab-bubble-status {
   background: #fff;
   color: #666;
@@ -1752,8 +1886,16 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: #f5f4f1;
+  opacity: 0;
+  transition: opacity 0.38s ease;
+}
+
+.ab-pub-root.ab-pub-enter {
+  opacity: 1;
 }
 
 .ab-pub-nav {

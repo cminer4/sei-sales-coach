@@ -14,11 +14,13 @@ export default async function AssessmentPublishedPage({
   }
 
   return (
-    <AssessmentPublishedView
-      assessmentId={data.id}
-      clientName={data.clientName}
-      draftContent={data.draftContent}
-      versions={data.versions}
-    />
+    <div className="ab-workspace-page">
+      <AssessmentPublishedView
+        assessmentId={data.id}
+        clientName={data.clientName}
+        draftContent={data.draftContent}
+        versions={data.versions}
+      />
+    </div>
   );
 }

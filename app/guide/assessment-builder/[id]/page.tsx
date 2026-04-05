@@ -14,15 +14,17 @@ export default async function AssessmentBuilderWorkspacePage({
   }
 
   return (
-    <AssessmentBuilderWorkspace
-      assessment={{
-        id: assessment.id,
-        clientName: assessment.clientName,
-        stakeholders: assessment.stakeholders,
-        projectBrief: assessment.projectBrief,
-        documents: assessment.documents,
-        draftContent: assessment.draftContent,
-      }}
-    />
+    <div className="ab-workspace-page">
+      <AssessmentBuilderWorkspace
+        assessment={{
+          id: assessment.id,
+          clientName: assessment.clientName,
+          stakeholders: assessment.stakeholders,
+          projectBrief: assessment.projectBrief,
+          documents: assessment.documents,
+          draftContent: assessment.draftContent,
+        }}
+      />
+    </div>
   );
 }

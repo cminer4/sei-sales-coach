@@ -19,7 +19,8 @@ export function NewAssessmentForm() {
   const [drag, setDrag] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [submittingSave, setSubmittingSave] = useState(false);
+  const [submittingCreate, setSubmittingCreate] = useState(false);
 
   const addFiles = useCallback((list: FileList | File[]) => {
     const incoming = Array.from(list);
@@ -56,19 +57,15 @@ export function NewAssessmentForm() {
     setStakeholders((s) => s.filter((x) => x !== name));
   }
 
-  async function submit(intent: 'save_exit' | 'create_draft') {
+  async function submitSaveExit() {
     setFieldError(null);
-    if (intent === 'create_draft' && !clientName.trim()) {
-      setFieldError('Add a client company name to create a draft.');
-      return;
-    }
-    setPending(true);
+    setSubmittingSave(true);
     try {
       const form = new FormData();
       form.append('clientName', clientName);
       form.append('projectBrief', projectBrief);
       form.append('stakeholders', JSON.stringify(stakeholders));
-      form.append('intent', intent);
+      form.append('intent', 'save_exit');
       for (const f of files) {
         form.append('files', f);
       }
@@ -79,7 +76,6 @@ export function NewAssessmentForm() {
       const data = (await res.json()) as { error?: string; redirect?: string };
       if (!res.ok) {
         setUploadError(data.error ?? 'Could not save.');
-        setPending(false);
         return;
       }
       if (data.redirect) {
@@ -88,7 +84,42 @@ export function NewAssessmentForm() {
     } catch {
       setUploadError('Something went wrong. Try again.');
     } finally {
-      setPending(false);
+      setSubmittingSave(false);
+    }
+  }
+
+  async function submitCreateDraft() {
+    setFieldError(null);
+    if (!clientName.trim()) {
+      setFieldError('Add a client company name to create a draft.');
+      return;
+    }
+    setSubmittingCreate(true);
+    try {
+      const form = new FormData();
+      form.append('clientName', clientName);
+      form.append('projectBrief', projectBrief);
+      form.append('stakeholders', JSON.stringify(stakeholders));
+      form.append('intent', 'create_draft');
+      for (const f of files) {
+        form.append('files', f);
+      }
+      const res = await fetch('/api/assessment-builder/assessments', {
+        method: 'POST',
+        body: form,
+      });
+      const data = (await res.json()) as { error?: string; redirect?: string };
+      if (!res.ok) {
+        setUploadError(data.error ?? 'Could not save.');
+        return;
+      }
+      if (data.redirect) {
+        router.push(data.redirect);
+      }
+    } catch {
+      setUploadError('Something went wrong. Try again.');
+    } finally {
+      setSubmittingCreate(false);
     }
   }
 
@@ -260,29 +291,33 @@ export function NewAssessmentForm() {
         <button
           type="button"
           className="ab-btn-save-exit"
-          disabled={pending}
-          onClick={() => submit('save_exit')}
+          disabled={submittingSave || submittingCreate}
+          onClick={() => void submitSaveExit()}
         >
           Save &amp; exit
         </button>
         <button
           type="button"
-          className="ab-btn-primary"
-          disabled={pending}
-          onClick={() => submit('create_draft')}
+          className={`ab-btn-primary ${submittingCreate ? 'ab-btn-creating' : ''}`}
+          disabled={submittingCreate || submittingSave}
+          onClick={() => void submitCreateDraft()}
         >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polygon points="5 3 19 12 5 21 5 3" />
-          </svg>
+          {submittingCreate ? (
+            <span className="ab-btn-spinner" aria-hidden />
+          ) : (
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          )}
           Create Draft
         </button>
       </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { buildFullEditorHtml } from '@/lib/assessment-builder-document-html';
 import type { DraftContent } from '@/lib/assessment-builder-draft-types';
 import { discoveryAssessmentFilename } from '@/lib/assessment-builder-docx';
@@ -40,6 +40,12 @@ export function AssessmentPublishedView({ assessmentId, clientName, draftContent
   const [downloading, setDownloading] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ versionLabel: string } | null>(null);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const currentVersionLabel = versions[0]?.versionNumber ?? '—';
 
@@ -93,7 +99,7 @@ export function AssessmentPublishedView({ assessmentId, clientName, draftContent
   );
 
   return (
-    <div className="ab-pub-root">
+    <div className={`ab-pub-root ${entered ? 'ab-pub-enter' : ''}`}>
       <header className="ab-pub-nav">
         <div className="ab-pub-nav-title">
           {clientName} — Discovery Assessment
