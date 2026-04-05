@@ -1,6 +1,12 @@
 import prisma from '@/lib/prisma';
 import { embedText } from '@/lib/embeddings';
 
+/**
+ * Knowledge base rows are scoped by `agents` on chunks (UUID strings). This is the
+ * `agents.id` for the SEI AI Assessment Builder in Prompt Control / the database.
+ */
+export const ASSESSMENT_BUILDER_AGENT_ID = 'd482819e-8251-4fae-9494-fbbeeba68c09';
+
 export type AssessmentChunkHit = { content: string; similarity: number };
 export type KbChunkHit = {
   content: string;
@@ -41,7 +47,7 @@ export async function retrieveAssessmentChunks(
 }
 
 /**
- * Top-K KB chunks scoped to assessment-builder (or all) on published documents.
+ * Top-K KB chunks scoped to the Assessment Builder agent (or all) on published documents.
  */
 export async function retrieveKbChunksForBuilder(
   queryText: string,
@@ -68,7 +74,7 @@ export async function retrieveKbChunksForBuilder(
     WHERE d.status = 'published'
       AND c.embedding IS NOT NULL
       AND (
-        'assessment-builder' = ANY(c.agents)
+        $3::text = ANY(c.agents)
         OR 'all' = ANY(c.agents)
       )
     ORDER BY c.embedding <=> $1::vector
@@ -76,6 +82,7 @@ export async function retrieveKbChunksForBuilder(
     `,
     embeddingSql,
     topK,
+    ASSESSMENT_BUILDER_AGENT_ID,
   );
   return rows.map((r) => ({
     content: r.content ?? '',
