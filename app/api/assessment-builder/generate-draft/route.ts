@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const maxDuration = 60; // seconds (Vercel / Next.js App Router)
 import Anthropic from '@anthropic-ai/sdk';
 import prisma from '@/lib/prisma';
 import { STUB_USER_ID } from '@/lib/assessment-builder-stub-user';

@@ -104,11 +104,19 @@ function unwrapLiToP(li: HTMLLIElement): HTMLParagraphElement {
   const ul = li.parentElement;
   const p = document.createElement('p');
   while (li.firstChild) p.appendChild(li.firstChild);
-  if (ul?.parentNode) {
-    ul.parentNode.insertBefore(p, li);
+
+  if (!ul?.parentNode) {
+    return p;
   }
-  li.remove();
-  if (ul && !ul.querySelector('li')) ul.remove();
+
+  const parent = ul.parentNode;
+  if (ul.children.length <= 1) {
+    parent.replaceChild(p, ul);
+  } else {
+    parent.insertBefore(p, ul);
+    li.remove();
+    if (!ul.querySelector('li')) ul.remove();
+  }
   return p;
 }
 
@@ -137,7 +145,10 @@ function toggleBulletList(section: HTMLElement): boolean {
       : (range.startContainer as Element);
   const li = startEl?.closest?.('li') as HTMLLIElement | undefined;
   if (li && section.contains(li)) {
+    const beforeHtml = section.innerHTML;
+    console.log('[ab-tb-ul] toggle off (li) before', beforeHtml);
     const p = unwrapLiToP(li);
+    console.log('[ab-tb-ul] toggle off (li) after', section.innerHTML);
     sel.removeAllRanges();
     const r = document.createRange();
     r.setStart(p, 0);
@@ -150,7 +161,10 @@ function toggleBulletList(section: HTMLElement): boolean {
   if (block.tagName === 'UL' || block.tagName === 'OL') {
     const innerLi = startEl?.closest?.('li') as HTMLLIElement | undefined;
     if (innerLi && section.contains(innerLi)) {
+      const beforeHtml = section.innerHTML;
+      console.log('[ab-tb-ul] toggle off (ul block) before', beforeHtml);
       const p = unwrapLiToP(innerLi);
+      console.log('[ab-tb-ul] toggle off (ul block) after', section.innerHTML);
       sel.removeAllRanges();
       const r = document.createRange();
       r.setStart(p, 0);
@@ -753,6 +767,13 @@ export function AssessmentBuilderWorkspace({
       });
 
       const rawText = await res.text();
+      console.log(
+        '[assessment-builder] refine-section response',
+        'status=',
+        res.status,
+        'raw=',
+        rawText,
+      );
       let data: Record<string, unknown> = {};
       try {
         data = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : {};
