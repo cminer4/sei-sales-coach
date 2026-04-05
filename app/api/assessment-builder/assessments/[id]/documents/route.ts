@@ -6,6 +6,45 @@ import { uploadAssessmentDocument } from '@/lib/assessment-builder-storage';
 
 export const runtime = 'nodejs';
 
+/** List documents with extracted text for transcript drawer (stub user only). */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const assessmentId = id?.trim();
+    if (!assessmentId) {
+      return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+    }
+
+    const row = await prisma.assessments.findFirst({
+      where: { id: assessmentId, created_by: STUB_USER_ID, deleted_at: null },
+      select: { id: true },
+    });
+    if (!row) {
+      return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
+    }
+
+    const documents = await prisma.assessment_documents.findMany({
+      where: { assessment_id: assessmentId },
+      select: { id: true, filename: true, extracted_text: true },
+      orderBy: { uploaded_at: 'asc' },
+    });
+
+    return NextResponse.json({
+      documents: documents.map((d) => ({
+        id: d.id,
+        filename: d.filename,
+        extracted_text: d.extracted_text,
+      })),
+    });
+  } catch (e) {
+    console.error('[assessment-builder/assessments/[id]/documents] GET', e);
+    return NextResponse.json({ error: 'Failed to load documents' }, { status: 500 });
+  }
+}
+
 /** Append documents to an existing assessment (multipart: files[]). */
 export async function POST(
   request: NextRequest,

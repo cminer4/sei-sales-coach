@@ -10,6 +10,7 @@ import {
   buildFullEditorHtml,
   parseDraftSectionsFromEditorRoot,
 } from '@/lib/assessment-builder-document-html';
+import { parseTranscriptForDisplay } from '@/lib/assessment-builder-transcript-lines';
 
 export type WorkspaceAssessment = {
   id: string;
@@ -84,6 +85,169 @@ function unwrapMark(el: HTMLElement) {
   }
 }
 
+function sortElementsByDocumentOrder<T extends Element>(elements: T[]): T[] {
+  return [...elements].sort((a, b) => {
+    const pos = a.compareDocumentPosition(b);
+    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+    return 0;
+  });
+}
+
+function getParagraphBlocksInRange(
+  section: HTMLElement,
+  range: Range,
+): HTMLParagraphElement[] {
+  if (range.collapsed) {
+    const n = range.startContainer;
+    const el = n.nodeType === Node.TEXT_NODE ? n.parentElement : (n as Element);
+    const p = el?.closest('p');
+    if (p && section.contains(p) && !p.closest('li')) {
+      return [p as HTMLParagraphElement];
+    }
+    return [];
+  }
+  const out: HTMLParagraphElement[] = [];
+  section.querySelectorAll<HTMLParagraphElement>('p').forEach((p) => {
+    if (!p.closest('li')) {
+      try {
+        if (range.intersectsNode(p)) out.push(p);
+      } catch {
+        /* intersectsNode unsupported */
+      }
+    }
+  });
+  return out;
+}
+
+function unwrapListItemsToParagraphs(section: HTMLElement, range: Range): boolean {
+  const liSet = new Set<HTMLLIElement>();
+  const addLiFromNode = (node: Node | null) => {
+    const el =
+      node?.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element | null);
+    const li = el?.closest?.('li') as HTMLLIElement | null;
+    if (li && section.contains(li) && li.closest('ul')) {
+      liSet.add(li);
+    }
+  };
+  addLiFromNode(range.startContainer);
+  addLiFromNode(range.endContainer);
+  if (!range.collapsed) {
+    section.querySelectorAll('li').forEach((li) => {
+      try {
+        if (range.intersectsNode(li)) {
+          liSet.add(li as HTMLLIElement);
+        }
+      } catch {
+        /* intersectsNode unsupported */
+      }
+    });
+  }
+  if (liSet.size === 0) return false;
+  const items = sortElementsByDocumentOrder(Array.from(liSet));
+  let firstP: HTMLParagraphElement | null = null;
+  for (const li of items) {
+    const ul = li.parentElement;
+    if (!ul) continue;
+    const p = document.createElement('p');
+    while (li.firstChild) p.appendChild(li.firstChild);
+    if (!firstP) firstP = p;
+    ul.insertBefore(p, li);
+    li.remove();
+    if (ul.childNodes.length === 0) ul.remove();
+  }
+  const sel = window.getSelection();
+  if (sel && firstP) {
+    sel.removeAllRanges();
+    const r = document.createRange();
+    r.setStart(firstP, 0);
+    r.collapse(true);
+    sel.addRange(r);
+  }
+  return true;
+}
+
+/**
+ * Toggle unordered list inside a [data-section] without insertUnorderedList (avoids indent-only behavior).
+ * Returns true if DOM was updated; false if caller should try insertMinimalListAtCaret.
+ */
+function manualToggleUnorderedList(editorRoot: HTMLElement): boolean {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return false;
+  const range = sel.getRangeAt(0);
+
+  const blockEnd = (node: Node) =>
+    node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element);
+  const startSection = blockEnd(range.startContainer)?.closest?.('[data-section]') as HTMLElement | null;
+  const endSection = blockEnd(range.endContainer)?.closest?.('[data-section]') as HTMLElement | null;
+  if (!startSection || startSection !== endSection || !editorRoot.contains(startSection)) {
+    return false;
+  }
+  const section = startSection;
+
+  const startEl =
+    range.startContainer.nodeType === Node.TEXT_NODE
+      ? range.startContainer.parentElement
+      : (range.startContainer as Element);
+  const liAncestor = startEl?.closest?.('li');
+  const inLi =
+    !!liAncestor &&
+    section.contains(liAncestor) &&
+    !!liAncestor.closest('ul');
+
+  if (inLi) {
+    return unwrapListItemsToParagraphs(section, range);
+  }
+
+  const blocks = getParagraphBlocksInRange(section, range);
+  if (blocks.length === 0) return false;
+  const unique = sortElementsByDocumentOrder([...new Set(blocks)]);
+
+  const ref = unique[0];
+  const parent = ref.parentNode;
+  if (!parent) return false;
+  const ul = document.createElement('ul');
+  parent.insertBefore(ul, ref);
+  for (const p of unique) {
+    const li = document.createElement('li');
+    while (p.firstChild) li.appendChild(p.firstChild);
+    ul.appendChild(li);
+    p.remove();
+  }
+  sel.removeAllRanges();
+  const r = document.createRange();
+  const firstLi = ul.firstChild as HTMLElement | null;
+  if (firstLi) {
+    r.selectNodeContents(firstLi);
+    r.collapse(true);
+    sel.addRange(r);
+  }
+  return true;
+}
+
+/**
+ * When toggle list cannot wrap existing blocks (e.g. caret in empty section), insert ul > li manually.
+ * No document.execCommand('insertUnorderedList').
+ */
+function insertMinimalListAtCaret(section: HTMLElement, range: Range): boolean {
+  if (!section.contains(range.commonAncestorContainer)) return false;
+  const ul = document.createElement('ul');
+  const li = document.createElement('li');
+  li.appendChild(document.createElement('br'));
+  ul.appendChild(li);
+  range.deleteContents();
+  range.insertNode(ul);
+  const sel = window.getSelection();
+  if (sel) {
+    sel.removeAllRanges();
+    const r = document.createRange();
+    r.setStart(li, 0);
+    r.collapse(true);
+    sel.addRange(r);
+  }
+  return true;
+}
+
 /** Prototype DEMO[0] — client name in strong; escape minimal for safe HTML. */
 function buildIntroHtml(clientName: string): string {
   const n = clientName.trim() || 'the client';
@@ -136,6 +300,12 @@ export function AssessmentBuilderWorkspace({
   const [panelSlim, setPanelSlim] = useState(false);
   const [chatIn, setChatIn] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  /** Which document's extracted text is shown in the transcript drawer. */
+  const [transcriptDocId, setTranscriptDocId] = useState<string | null>(null);
+  /** null = not loaded; map id -> extracted_text (may be null from DB). */
+  const [docTextCache, setDocTextCache] = useState<Record<string, string | null> | null>(null);
+  const [docTextsLoading, setDocTextsLoading] = useState(false);
+  const [docTextsError, setDocTextsError] = useState<string | null>(null);
 
   const [pipelinePhase, setPipelinePhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [draft, setDraft] = useState<DraftContent | null>(null);
@@ -158,6 +328,8 @@ export function AssessmentBuilderWorkspace({
   const [pipelineChecklistVisible, setPipelineChecklistVisible] = useState(false);
   const [pipelineActiveStep, setPipelineActiveStep] = useState(0);
   const [builderExiting, setBuilderExiting] = useState(false);
+  /** Toolbar pressed state: bold/italic via queryCommandState; bullets when caret is in ul > li. */
+  const [toolbarFmt, setToolbarFmt] = useState({ bold: false, italic: false, ul: false });
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const chatTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -167,6 +339,7 @@ export function AssessmentBuilderWorkspace({
   const closePanelTimersRef = useRef<number[]>([]);
   const mountTimersRef = useRef<number[]>([]);
   const uploadDocInputRef = useRef<HTMLInputElement>(null);
+  const docTextsLoadPromiseRef = useRef<Promise<void> | null>(null);
 
   const applyDraftToEditor = useCallback(
     (d: DraftContent) => {
@@ -342,6 +515,53 @@ export function AssessmentBuilderWorkspace({
     [assessment.id],
   );
 
+  const ensureDocTextsLoaded = useCallback(async () => {
+    if (docTextCache !== null) return;
+    if (!docTextsLoadPromiseRef.current) {
+      docTextsLoadPromiseRef.current = (async () => {
+        setDocTextsLoading(true);
+        setDocTextsError(null);
+        try {
+          const res = await fetch(`/api/assessment-builder/assessments/${assessment.id}/documents`);
+          const data = (await res.json()) as {
+            error?: string;
+            documents?: { id: string; filename: string; extracted_text: string | null }[];
+          };
+          if (!res.ok) throw new Error(data.error || 'Failed to load documents');
+          const map: Record<string, string | null> = {};
+          for (const d of data.documents ?? []) {
+            map[d.id] = d.extracted_text ?? null;
+          }
+          setDocTextCache(map);
+        } catch (e) {
+          setDocTextsError(e instanceof Error ? e.message : 'Load failed');
+        } finally {
+          setDocTextsLoading(false);
+        }
+      })().finally(() => {
+        docTextsLoadPromiseRef.current = null;
+      });
+    }
+    await docTextsLoadPromiseRef.current;
+  }, [assessment.id, docTextCache]);
+
+  useEffect(() => {
+    setDocTextCache(null);
+    setTranscriptDocId(null);
+    setDrawerOpen(false);
+    setDocTextsError(null);
+    docTextsLoadPromiseRef.current = null;
+  }, [assessment.id]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
+
   const openConfigMode = () => {
     mountTimersRef.current.forEach(clearTimeout);
     mountTimersRef.current = [];
@@ -434,6 +654,7 @@ export function AssessmentBuilderWorkspace({
       };
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       const added = data.documents ?? [];
+      setDocTextCache(null);
       setLocalAssessment((prev) => ({
         ...prev,
         documents: [...prev.documents, ...added],
@@ -491,10 +712,40 @@ export function AssessmentBuilderWorkspace({
   };
 
   const fmt = (cmd: 'bold' | 'italic' | 'ul') => {
+    if (cmd === 'ul') {
+      const root = editorRef.current;
+      if (!root) return;
+      const sel = window.getSelection();
+      const anchor = sel?.anchorNode;
+      const secEl =
+        anchor &&
+        (anchor.nodeType === Node.TEXT_NODE
+          ? anchor.parentElement
+          : (anchor as Element)
+        )?.closest?.('[data-section]');
+      (
+        secEl instanceof HTMLElement
+          ? secEl
+          : root.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]')
+      )?.focus();
+      const ok = manualToggleUnorderedList(root);
+      if (!ok && sel && sel.rangeCount > 0) {
+        const r = sel.getRangeAt(0);
+        const startEl =
+          r.startContainer.nodeType === Node.TEXT_NODE
+            ? r.startContainer.parentElement
+            : (r.startContainer as Element);
+        const startSection = startEl?.closest?.('[data-section]') as HTMLElement | null;
+        if (startSection && root.contains(startSection)) {
+          insertMinimalListAtCaret(startSection, r);
+        }
+      }
+      onEditorInput();
+      return;
+    }
     editorRef.current?.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]')?.focus();
     if (cmd === 'bold') document.execCommand('bold');
-    else if (cmd === 'italic') document.execCommand('italic');
-    else document.execCommand('insertUnorderedList');
+    else document.execCommand('italic');
   };
 
   const applyHL = (color: string) => {
@@ -701,8 +952,6 @@ export function AssessmentBuilderWorkspace({
     dismissSuggestion(section);
   };
 
-  const stk = localAssessment.stakeholders.length;
-  const docs = localAssessment.documents.length;
   const hasDraftForUpdate =
     isDraftContentNonEmpty(assessment.draftContent) ||
     (draft !== null && isDraftContentNonEmpty(draft));
@@ -710,6 +959,39 @@ export function AssessmentBuilderWorkspace({
   const showShimmerOverlay = !documentPainted && pipelinePhase !== 'error';
   const chatEnabled =
     scriptSequenceComplete && pipelinePhase === 'ready' && documentPainted;
+
+  useEffect(() => {
+    if (!showLiveEditor || !documentPainted) return;
+    const syncToolbar = () => {
+      const root = editorRef.current;
+      if (!root) return;
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) {
+        setToolbarFmt({ bold: false, italic: false, ul: false });
+        return;
+      }
+      const node = sel.anchorNode;
+      if (!node || !root.contains(node)) {
+        setToolbarFmt({ bold: false, italic: false, ul: false });
+        return;
+      }
+      let bold = false;
+      let italic = false;
+      try {
+        bold = document.queryCommandState('bold');
+        italic = document.queryCommandState('italic');
+      } catch {
+        /* queryCommandState unsupported */
+      }
+      const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element);
+      const ul =
+        !!(el && typeof el.closest === 'function' && el.closest('ul') && el.closest('li'));
+      setToolbarFmt({ bold, italic, ul });
+    };
+    document.addEventListener('selectionchange', syncToolbar);
+    syncToolbar();
+    return () => document.removeEventListener('selectionchange', syncToolbar);
+  }, [showLiveEditor, documentPainted]);
 
   const resizeChatTextarea = useCallback(() => {
     const el = chatTextareaRef.current;
@@ -896,25 +1178,13 @@ export function AssessmentBuilderWorkspace({
         </div>
 
         <div className={`ab-chat ${chatIn ? 'ab-chat-in' : ''}`}>
-          <div
-            className="ab-proj-hdr"
-            onClick={() => setDrawerOpen((o) => !o)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setDrawerOpen((o) => !o);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
+          <div className="ab-proj-hdr">
             <div className="ab-ph-top">
               <span className="ab-ph-name">{localAssessment.clientName}</span>
               <button
                 type="button"
                 className={`ab-ph-edit ${configMode ? 'ab-ph-edit-on' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => {
                   if (configMode) closeConfigMode();
                   else openConfigMode();
                 }}
@@ -922,60 +1192,93 @@ export function AssessmentBuilderWorkspace({
                 {configMode ? 'Close' : '✎ Edit'}
               </button>
             </div>
-            <div
-              className="ab-ph-pills"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
-              <span className="ab-pill" onClick={() => setDrawerOpen((o) => !o)}>
-                👤 {stk} stakeholder{stk !== 1 ? 's' : ''}
-              </span>
-              <span
-                className="ab-pill"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // TODO SEI-43: Open transcript drawer with split-screen document reader.
-                  setDrawerOpen((o) => !o);
-                }}
-              >
-                📄 {docs} document{docs !== 1 ? 's' : ''}
-              </span>
+            <div className="ab-ph-stakeholders">
+              <div className="ab-chip-row">
+                {localAssessment.stakeholders.map((s) => (
+                  <span key={s} className="ab-chip">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="ab-ph-doc-row">
+              <div className="ab-doc-pills">
+                {localAssessment.documents.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    className={`ab-doc-pill ${transcriptDocId === d.id && drawerOpen ? 'ab-doc-pill-active' : ''}`}
+                    onClick={() => {
+                      setTranscriptDocId(d.id);
+                      setDrawerOpen(true);
+                      void ensureDocTextsLoaded();
+                    }}
+                  >
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    {d.filename}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className={`ab-drawer ${drawerOpen ? 'open' : ''}`}>
+          <div className={`ab-drawer ${drawerOpen ? 'open' : ''}`} aria-hidden={!drawerOpen}>
             <div className="ab-drawer-inner">
-              <div>
-                <div className="ab-dr-lbl">Stakeholders</div>
-                <div className="ab-chip-row">
-                  {localAssessment.stakeholders.map((s) => (
-                    <span key={s} className="ab-chip">
-                      {s}
-                    </span>
-                  ))}
-                </div>
+              <div className="ab-drawer-transcript-hdr">
+                <span className="ab-drawer-filename">
+                  {transcriptDocId
+                    ? (localAssessment.documents.find((x) => x.id === transcriptDocId)?.filename ??
+                        'Document')
+                    : 'Document'}
+                </span>
+                <button
+                  type="button"
+                  className="ab-drawer-close"
+                  aria-label="Close transcript"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  ×
+                </button>
               </div>
-              <div>
-                <div className="ab-dr-lbl">Documents</div>
-                <div className="ab-doc-pills">
-                  {localAssessment.documents.map((d) => (
-                    <span key={d.id} className="ab-doc-pill">
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+              <div className="ab-drawer-transcript-body" tabIndex={0}>
+                {docTextsLoading ? (
+                  <p className="ab-drawer-placeholder">Loading…</p>
+                ) : docTextsError ? (
+                  <p className="ab-drawer-placeholder">{docTextsError}</p>
+                ) : transcriptDocId && docTextCache && transcriptDocId in docTextCache ? (
+                  docTextCache[transcriptDocId] == null || docTextCache[transcriptDocId] === '' ? (
+                    <p className="ab-drawer-placeholder">No extracted text for this file yet.</p>
+                  ) : (
+                    parseTranscriptForDisplay(docTextCache[transcriptDocId] ?? '').map((row, i) => (
+                      <div
+                        key={i}
+                        className={
+                          row.kind === 'consultant'
+                            ? 'ab-tr-line ab-tr-consultant'
+                            : row.kind === 'blank'
+                              ? 'ab-tr-line ab-tr-blank'
+                              : 'ab-tr-line ab-tr-client'
+                        }
                       >
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                      {d.filename}
-                    </span>
-                  ))}
-                </div>
+                        {row.kind === 'blank' ? '\u00a0' : row.text}
+                      </div>
+                    ))
+                  )
+                ) : (
+                  <p className="ab-drawer-placeholder">Select a document above.</p>
+                )}
               </div>
             </div>
           </div>
@@ -1176,13 +1479,31 @@ export function AssessmentBuilderWorkspace({
             <div className="ab-escroll">
               <div className="ab-docpage">
                 <div className="ab-tbar">
-                  <button type="button" className="ab-tb" onClick={() => fmt('bold')} title="Bold">
+                  <button
+                    type="button"
+                    className={`ab-tb${toolbarFmt.bold ? ' on' : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => fmt('bold')}
+                    title="Bold"
+                  >
                     <b>B</b>
                   </button>
-                  <button type="button" className="ab-tb" onClick={() => fmt('italic')} title="Italic">
+                  <button
+                    type="button"
+                    className={`ab-tb${toolbarFmt.italic ? ' on' : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => fmt('italic')}
+                    title="Italic"
+                  >
                     <i>I</i>
                   </button>
-                  <button type="button" className="ab-tb" onClick={() => fmt('ul')} title="Bullets">
+                  <button
+                    type="button"
+                    className={`ab-tb${toolbarFmt.ul ? ' on' : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => fmt('ul')}
+                    title="Bullets"
+                  >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="8" y1="6" x2="21" y2="6" />
                       <line x1="8" y1="12" x2="21" y2="12" />
