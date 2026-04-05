@@ -960,6 +960,9 @@
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   position: relative;
+  /* Stack above .ab-canvas (later sibling) so document layers never paint over this column. */
+  z-index: 2;
+  isolation: isolate;
 }
 
 .ab-lpanel-slim {
@@ -1287,6 +1290,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  z-index: 0;
 }
 
 .ab-canvas-rel {
@@ -1452,6 +1457,7 @@
 }
 
 .ab-escroll {
+  --ab-tbar-h: 40px;
   flex: 1;
   overflow-y: auto;
   background: #e8e5e0;
@@ -1471,10 +1477,11 @@
 .ab-tbar {
   position: sticky;
   top: 0;
+  /* Above .ab-doc-locked (8); below transcript drawer overlay when open. */
   z-index: 10;
   width: 100%;
   box-sizing: border-box;
-  height: 40px;
+  height: var(--ab-tbar-h, 40px);
   background: #f9f8f6;
   background-color: #f9f8f6;
   border-bottom: 1px solid #ede9e4;
@@ -1649,6 +1656,13 @@
 /* Root is not editable; typing happens only inside .ab-sec[contenteditable="true"] */
 .ab-doc-locked {
   user-select: none;
+  /* Same scroll container as .ab-tbar (.ab-escroll): stay below toolbar, opaque so body text does not show through. */
+  position: sticky;
+  top: var(--ab-tbar-h, 40px);
+  z-index: 8;
+  background: #fff;
+  padding-bottom: 4px;
+  margin-bottom: 0;
 }
 
 .ab-doc-body {
