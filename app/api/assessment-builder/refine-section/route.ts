@@ -10,7 +10,6 @@ import {
   parseDraftObject,
   parseRefineJsonString,
 } from '@/lib/assessment-builder-draft-schema';
-import { persistAssessmentDraft } from '@/lib/assessment-builder-persist-draft';
 import { getAssessmentBuilderAgent } from '@/lib/assessment-builder-agent';
 import {
   buildAssessmentRefineSystemFallback,
@@ -116,15 +115,6 @@ export async function POST(request: NextRequest) {
     }
 
     const merged = mergeRefinedDraft(currentDraft, parsed, dirtySections);
-
-    const saved = await persistAssessmentDraft({
-      assessmentId,
-      createdBy: STUB_USER_ID,
-      draft: merged,
-    });
-    if (!saved) {
-      return NextResponse.json({ error: 'Failed to persist draft' }, { status: 500 });
-    }
 
     return NextResponse.json({
       draft: merged,

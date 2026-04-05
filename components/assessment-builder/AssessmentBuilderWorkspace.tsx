@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { validateAssessmentUploadSizes } from '@/lib/assessment-builder-upload-limits';
 import type { DraftContent, DraftSectionKey } from '@/lib/assessment-builder-draft-types';
 import { DRAFT_SECTION_KEYS } from '@/lib/assessment-builder-draft-types';
 import {
@@ -23,12 +24,49 @@ type ChatMsg =
   | { role: 'a'; html: string }
   | { role: 'u'; text: string }
   | { role: 'a'; kind: 'update'; title: string; note: string }
+  | { role: 'a'; kind: 'status'; text: string }
   | {
       role: 'a';
       kind: 'suggestion';
       section: DraftSectionKey;
       html: string;
+      summary: string;
     };
+
+const SECTION_LABELS: Record<DraftSectionKey, string> = {
+  findings: 'Findings',
+  interviews: 'Interviews',
+  hypothesis: 'Hypothesis',
+  stakeholder_map: 'Stakeholder map',
+  opportunities: 'Opportunities',
+};
+
+function statusMsg(text: string): ChatMsg {
+  return { role: 'a', kind: 'status', text };
+}
+
+function stripHtmlPlain(s: string): string {
+  return s
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sectionChangeSummary(beforeHtml: string, afterHtml: string): string {
+  const before = stripHtmlPlain(beforeHtml);
+  const after = stripHtmlPlain(afterHtml);
+  if (before === after) {
+    return 'Refined for structure and formatting.';
+  }
+  if (after.length > before.length * 1.15) {
+    return 'Expanded with your input and added detail.';
+  }
+  if (after.length < before.length * 0.85) {
+    return 'Tightened for clarity.';
+  }
+  return 'Updated to reflect your feedback and the latest context.';
+}
 
 function escapeHtmlText(s: string): string {
   return s
@@ -38,17 +76,23 @@ function escapeHtmlText(s: string): string {
     .replace(/\n/g, '<br>');
 }
 
+function unwrapMark(el: HTMLElement) {
+  const parent = el.parentNode;
+  if (!parent) return;
+  while (el.firstChild) {
+    parent.insertBefore(el.firstChild, el);
+  }
+  parent.removeChild(el);
+  if (parent instanceof HTMLElement) {
+    parent.normalize();
+  }
+}
+
 /** Prototype DEMO[0] — client name in strong; escape minimal for safe HTML. */
 function buildIntroHtml(clientName: string): string {
   const n = clientName.trim() || 'the client';
   const safe = n.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `Hi — I'm here to help you build the AI Assessment for <strong>${safe}</strong>. I've read through what you shared and generated a first draft on the right — you can start editing it now.<br><br>I have a few questions that will help me sharpen the content as we work through it.`;
-}
-
-function truncateNote(s: string, max: number): string {
-  const t = s.replace(/\s+/g, ' ').trim();
-  if (t.length <= max) return t;
-  return `${t.slice(0, max - 1)}…`;
 }
 
 const Q1_HTML =
@@ -102,11 +146,20 @@ export function AssessmentBuilderWorkspace({
   const [scriptSequenceComplete, setScriptSequenceComplete] = useState(false);
   const [refineRound, setRefineRound] = useState(0);
   const [publishing, setPublishing] = useState(false);
+  const [configMode, setConfigMode] = useState(false);
+  const [localAssessment, setLocalAssessment] = useState(assessment);
+  const [stkInput, setStkInput] = useState('');
+  const [savingCtx, setSavingCtx] = useState(false);
+  const [uploadingDocs, setUploadingDocs] = useState(false);
+  const [rerunBusy, setRerunBusy] = useState(false);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgsEndRef = useRef<HTMLDivElement | null>(null);
   const scriptTimersRef = useRef<number[]>([]);
+  const closePanelTimersRef = useRef<number[]>([]);
+  const mountTimersRef = useRef<number[]>([]);
+  const uploadDocInputRef = useRef<HTMLInputElement>(null);
 
   const applyDraftToEditor = useCallback(
     (d: DraftContent) => {
@@ -119,13 +172,15 @@ export function AssessmentBuilderWorkspace({
 
   useEffect(() => {
     setConfigHide(true);
-    const t2 = setTimeout(() => setPanelSlim(true), 80);
-    const t3 = setTimeout(() => setConfigGone(true), 280);
-    const t4 = setTimeout(() => setChatIn(true), 300);
+    mountTimersRef.current.forEach(clearTimeout);
+    mountTimersRef.current = [
+      window.setTimeout(() => setPanelSlim(true), 80),
+      window.setTimeout(() => setConfigGone(true), 280),
+      window.setTimeout(() => setChatIn(true), 300),
+    ];
     return () => {
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
+      mountTimersRef.current.forEach(clearTimeout);
+      mountTimersRef.current = [];
     };
   }, []);
 
@@ -146,22 +201,36 @@ export function AssessmentBuilderWorkspace({
     }
   }, [assessment.id, assessment.draftContent]);
 
-  /** No saved draft: extract then generate-draft (no user action). Shimmer stays until document is painted. */
   useEffect(() => {
-    if (isDraftContentNonEmpty(assessment.draftContent)) return;
-    let cancelled = false;
-    async function run() {
+    setLocalAssessment(assessment);
+  }, [assessment]);
+
+  const executePipeline = useCallback(
+    async (opts: { cancelled: () => boolean }) => {
+      const cancelled = opts.cancelled;
       try {
+        setMessages([statusMsg('Reviewing your uploaded documents...')]);
         const ex = await fetch('/api/assessment-builder/extract', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ assessmentId: assessment.id }),
         });
         const exJson = await ex.json();
+        if (cancelled()) return;
+        setMessages((m) => [
+          ...m,
+          statusMsg('Extracting key information from transcripts...'),
+        ]);
         if (!ex.ok && exJson.errors?.length) {
           console.warn('[assessment-builder] extract warnings', exJson.errors);
         }
-        if (cancelled) return;
+
+        setMessages((m) => [...m, statusMsg('Retrieving SEI methodology context...')]);
+        await new Promise<void>((r) => {
+          requestAnimationFrame(() => r());
+        });
+        if (cancelled()) return;
+        setMessages((m) => [...m, statusMsg('Building your Discovery draft...')]);
 
         const gen = await fetch('/api/assessment-builder/generate-draft', {
           method: 'POST',
@@ -172,20 +241,39 @@ export function AssessmentBuilderWorkspace({
         if (!gen.ok) {
           throw new Error(genJson.error || 'Generate failed');
         }
-        if (cancelled) return;
+        if (cancelled()) return;
         const d = genJson.draft as DraftContent;
+        setMessages((m) => [
+          ...m,
+          statusMsg(
+            'Your draft is ready. I have a few questions to sharpen the content.',
+          ),
+        ]);
         setDraft(d);
         setPipelinePhase('ready');
       } catch (e) {
         console.error(e);
-        if (!cancelled) setPipelinePhase('error');
+        if (!cancelled()) setPipelinePhase('error');
       }
-    }
-    void run();
+    },
+    [assessment.id],
+  );
+
+  /** No saved draft: extract then generate-draft (no user action). Shimmer stays until document is painted. */
+  useEffect(() => {
+    if (isDraftContentNonEmpty(assessment.draftContent)) return;
+    let cancelled = false;
+    void executePipeline({ cancelled: () => cancelled });
     return () => {
       cancelled = true;
     };
-  }, [assessment.id, assessment.draftContent]);
+  }, [assessment.id, assessment.draftContent, executePipeline]);
+
+  useEffect(() => {
+    return () => {
+      closePanelTimersRef.current.forEach(clearTimeout);
+    };
+  }, []);
 
   /** Paint full document before first browser paint so the canvas is never blank. */
   useLayoutEffect(() => {
@@ -211,11 +299,15 @@ export function AssessmentBuilderWorkspace({
    */
   useEffect(() => {
     if (!documentPainted) return;
+    if (scriptSequenceComplete) return;
     scriptTimersRef.current.forEach(clearTimeout);
     scriptTimersRef.current = [];
 
     const tIntro = window.setTimeout(() => {
-      setMessages([{ role: 'a', html: buildIntroHtml(assessment.clientName) }]);
+      setMessages((m) => [
+        ...m,
+        { role: 'a', html: buildIntroHtml(assessment.clientName) },
+      ]);
     }, 500);
     const tQ1 = window.setTimeout(() => {
       setMessages((m) => [...m, { role: 'a', html: Q1_HTML }]);
@@ -243,6 +335,131 @@ export function AssessmentBuilderWorkspace({
     },
     [assessment.id],
   );
+
+  const openConfigMode = () => {
+    mountTimersRef.current.forEach(clearTimeout);
+    mountTimersRef.current = [];
+    setDrawerOpen(false);
+    setChatIn(false);
+    setConfigGone(false);
+    requestAnimationFrame(() => {
+      setConfigHide(false);
+      setPanelSlim(false);
+    });
+    setConfigMode(true);
+  };
+
+  const closeConfigMode = () => {
+    closePanelTimersRef.current.forEach(clearTimeout);
+    closePanelTimersRef.current = [];
+    setConfigHide(true);
+    const t2 = window.setTimeout(() => setPanelSlim(true), 80);
+    const t3 = window.setTimeout(() => setConfigGone(true), 280);
+    const t4 = window.setTimeout(() => setChatIn(true), 300);
+    const t5 = window.setTimeout(() => setConfigMode(false), 320);
+    closePanelTimersRef.current.push(t2, t3, t4, t5);
+  };
+
+  const saveContext = async () => {
+    setSavingCtx(true);
+    try {
+      const res = await fetch(`/api/assessment-builder/assessments/${assessment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectBrief: localAssessment.projectBrief,
+          stakeholders: localAssessment.stakeholders,
+        }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        projectBrief?: string | null;
+        stakeholders?: string[];
+      };
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      setLocalAssessment((prev) => ({
+        ...prev,
+        projectBrief: data.projectBrief ?? null,
+        stakeholders: data.stakeholders ?? prev.stakeholders,
+      }));
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingCtx(false);
+    }
+  };
+
+  const rerunPipeline = async () => {
+    setRerunBusy(true);
+    setPipelinePhase('loading');
+    setDocumentPainted(false);
+    setDraft(null);
+    try {
+      await executePipeline({ cancelled: () => false });
+    } finally {
+      setRerunBusy(false);
+    }
+  };
+
+  const onDocsPicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    const list = Array.from(files);
+    const v = validateAssessmentUploadSizes(list.map((f) => f.size));
+    if (!v.ok) {
+      window.alert(v.error ?? 'Invalid file size.');
+      e.target.value = '';
+      return;
+    }
+    setUploadingDocs(true);
+    try {
+      const form = new FormData();
+      for (const f of list) {
+        form.append('files', f);
+      }
+      const res = await fetch(`/api/assessment-builder/assessments/${assessment.id}/documents`, {
+        method: 'POST',
+        body: form,
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        documents?: { id: string; filename: string }[];
+      };
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const added = data.documents ?? [];
+      setLocalAssessment((prev) => ({
+        ...prev,
+        documents: [...prev.documents, ...added],
+      }));
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      window.alert('Upload failed. Try again.');
+    } finally {
+      setUploadingDocs(false);
+      e.target.value = '';
+    }
+  };
+
+  const addStakeholderFromInput = () => {
+    const v = stkInput.trim();
+    if (!v) return;
+    setLocalAssessment((prev) => ({
+      ...prev,
+      stakeholders: prev.stakeholders.includes(v)
+        ? prev.stakeholders
+        : [...prev.stakeholders, v],
+    }));
+    setStkInput('');
+  };
+
+  const removeStakeholderChip = (name: string) => {
+    setLocalAssessment((prev) => ({
+      ...prev,
+      stakeholders: prev.stakeholders.filter((x) => x !== name),
+    }));
+  };
 
   const onEditorInput = () => {
     const el = editorRef.current;
@@ -278,11 +495,21 @@ export function AssessmentBuilderWorkspace({
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return;
     editorRef.current?.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]')?.focus();
-    const r = sel.getRangeAt(0);
+    const range = sel.getRangeAt(0);
+    const start = range.startContainer;
+    const startEl =
+      start.nodeType === Node.TEXT_NODE ? start.parentElement : (start as Element);
+    const markAtStart = startEl?.closest?.('mark[data-color]') as HTMLElement | null;
+    if (markAtStart && markAtStart.getAttribute('data-color') === color) {
+      unwrapMark(markAtStart);
+      sel.removeAllRanges();
+      onEditorInput();
+      return;
+    }
     const m = document.createElement('mark');
     m.setAttribute('data-color', color);
     try {
-      r.surroundContents(m);
+      range.surroundContents(m);
     } catch {
       document.execCommand(
         'insertHTML',
@@ -290,6 +517,35 @@ export function AssessmentBuilderWorkspace({
         `<mark data-color="${color}">${sel.toString()}</mark>`,
       );
     }
+    onEditorInput();
+  };
+
+  const clearHighlightFromSelection = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const root = editorRef.current;
+    if (!root) return;
+    const marks = root.querySelectorAll('mark[data-color]');
+    const toUnwrap: HTMLElement[] = [];
+    marks.forEach((node) => {
+      try {
+        if (range.intersectsNode(node)) {
+          toUnwrap.push(node as HTMLElement);
+        }
+      } catch {
+        /* intersectsNode unsupported */
+      }
+    });
+    if (toUnwrap.length === 0) {
+      editorRef.current?.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]')?.focus();
+      document.execCommand('removeFormat');
+      onEditorInput();
+      return;
+    }
+    toUnwrap.forEach((el) => unwrapMark(el));
+    sel.removeAllRanges();
+    onEditorInput();
   };
 
   const sendChat = async () => {
@@ -320,31 +576,27 @@ export function AssessmentBuilderWorkspace({
       if (!res.ok) throw new Error(data.error || 'Refine failed');
 
       const merged = data.draft as DraftContent;
-      setDraft(merged);
 
       const replyText = typeof data.reply === 'string' ? data.reply : '';
-      const note = replyText.trim() ? truncateNote(replyText, 140) : '';
-      const sug = data.suggestions as Partial<Record<DraftSectionKey, string>> | undefined;
       const suggestionMsgs: ChatMsg[] = [];
-      if (sug) {
-        for (const k of DRAFT_SECTION_KEYS) {
-          const html = sug[k];
-          if (html && dirty[k]) {
-            suggestionMsgs.push({ role: 'a', kind: 'suggestion', section: k, html });
-          }
+      for (const k of DRAFT_SECTION_KEYS) {
+        const before = latest[k] ?? '';
+        const after = merged[k] ?? '';
+        if (before.trim() !== after.trim()) {
+          suggestionMsgs.push({
+            role: 'a',
+            kind: 'suggestion',
+            section: k,
+            html: after,
+            summary: sectionChangeSummary(before, after),
+          });
         }
       }
-      setMessages((m) => {
-        const next: ChatMsg[] = [
-          ...m,
-          { role: 'a', html: escapeHtmlText(replyText) },
-        ];
-        if (note) {
-          next.push({ role: 'a', kind: 'update', title: 'Document updated', note });
-        }
-        next.push(...suggestionMsgs);
-        return next;
-      });
+      setMessages((m) => [
+        ...m,
+        { role: 'a', html: escapeHtmlText(replyText) },
+        ...suggestionMsgs,
+      ]);
 
       const next = refineRound + 1;
       setRefineRound(next);
@@ -406,6 +658,20 @@ export function AssessmentBuilderWorkspace({
     }
   };
 
+  const dismissSuggestion = (section: DraftSectionKey) => {
+    setMessages((m) =>
+      m.filter(
+        (x) =>
+          !(
+            x.role === 'a' &&
+            'kind' in x &&
+            x.kind === 'suggestion' &&
+            x.section === section
+          ),
+      ),
+    );
+  };
+
   const applySuggestion = (section: DraftSectionKey, html: string) => {
     const el = editorRef.current?.querySelector(`[data-section="${section}"]`);
     if (el) {
@@ -421,21 +687,11 @@ export function AssessmentBuilderWorkspace({
         void persistDraft(parsed);
       }
     }
-    setMessages((m) =>
-      m.filter(
-        (x) =>
-          !(
-            x.role === 'a' &&
-            'kind' in x &&
-            x.kind === 'suggestion' &&
-            x.section === section
-          ),
-      ),
-    );
+    dismissSuggestion(section);
   };
 
-  const stk = assessment.stakeholders.length;
-  const docs = assessment.documents.length;
+  const stk = localAssessment.stakeholders.length;
+  const docs = localAssessment.documents.length;
   const showLiveEditor = pipelinePhase === 'ready' && draft !== null;
   const showShimmerOverlay = !documentPainted && pipelinePhase !== 'error';
   const chatEnabled =
@@ -459,17 +715,50 @@ export function AssessmentBuilderWorkspace({
             </p>
             <div className="ab-field">
               <label htmlFor="ab-ws-client">Client company</label>
-              <input id="ab-ws-client" type="text" readOnly value={assessment.clientName} />
+              <input id="ab-ws-client" type="text" readOnly value={localAssessment.clientName} />
             </div>
             <div className="ab-field">
               <span className="ab-field-label-span">Key stakeholders</span>
-              <div className="ab-chip-row">
-                {assessment.stakeholders.map((s) => (
-                  <span key={s} className="ab-chip">
-                    {s}
-                  </span>
-                ))}
-              </div>
+              {configMode ? (
+                <>
+                  <div className="ab-chip-row">
+                    {localAssessment.stakeholders.map((s) => (
+                      <span key={s} className="ab-chip ab-chip-ed">
+                        {s}
+                        <button
+                          type="button"
+                          className="ab-chip-x"
+                          aria-label={`Remove ${s}`}
+                          onClick={() => removeStakeholderChip(s)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    className="ab-stk-input"
+                    type="text"
+                    value={stkInput}
+                    placeholder="Add stakeholder, press Enter"
+                    onChange={(e) => setStkInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addStakeholderFromInput();
+                      }
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="ab-chip-row">
+                  {localAssessment.stakeholders.map((s) => (
+                    <span key={s} className="ab-chip">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="ab-field">
               <label htmlFor="ab-ws-brief">
@@ -478,12 +767,22 @@ export function AssessmentBuilderWorkspace({
                   — optional
                 </span>
               </label>
-              <textarea id="ab-ws-brief" readOnly value={assessment.projectBrief ?? ''} />
+              <textarea
+                id="ab-ws-brief"
+                readOnly={!configMode}
+                value={localAssessment.projectBrief ?? ''}
+                onChange={(e) =>
+                  setLocalAssessment((prev) => ({
+                    ...prev,
+                    projectBrief: e.target.value,
+                  }))
+                }
+              />
             </div>
             <div className="ab-field">
               <span className="ab-field-label-span">Transcripts &amp; documents</span>
               <div className="ab-chip-row" style={{ marginTop: 8 }}>
-                {assessment.documents.map((d) => (
+                {localAssessment.documents.map((d) => (
                   <span key={d.id} className="ab-doc-chip-ro">
                     <svg
                       width="11"
@@ -503,15 +802,61 @@ export function AssessmentBuilderWorkspace({
                   </span>
                 ))}
               </div>
+              {configMode ? (
+                <>
+                  <input
+                    ref={uploadDocInputRef}
+                    type="file"
+                    multiple
+                    className="sr-only"
+                    tabIndex={-1}
+                    onChange={onDocsPicked}
+                  />
+                  <button
+                    type="button"
+                    className="ab-btn-add-docs"
+                    disabled={uploadingDocs}
+                    onClick={() => uploadDocInputRef.current?.click()}
+                  >
+                    {uploadingDocs ? 'Uploading…' : 'Add documents'}
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
-          <div className="ab-cfg-footer">
-            <button type="button" className="ab-btn-save-exit" disabled>
-              Save &amp; exit
-            </button>
-            <button type="button" className="ab-btn-primary" disabled>
-              Create Draft
-            </button>
+          <div className={`ab-cfg-footer ${configMode ? 'ab-cfg-footer-edit' : ''}`}>
+            {configMode ? (
+              <>
+                <button type="button" className="ab-btn-save-exit" onClick={closeConfigMode}>
+                  Back to chat
+                </button>
+                <button
+                  type="button"
+                  className="ab-btn-secondary"
+                  disabled={savingCtx}
+                  onClick={() => void saveContext()}
+                >
+                  {savingCtx ? 'Saving…' : 'Save changes'}
+                </button>
+                <button
+                  type="button"
+                  className="ab-btn-primary"
+                  disabled={rerunBusy || pipelinePhase === 'loading'}
+                  onClick={() => void rerunPipeline()}
+                >
+                  {rerunBusy ? 'Running…' : 'Re-run pipeline'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="ab-btn-save-exit" disabled>
+                  Save &amp; exit
+                </button>
+                <button type="button" className="ab-btn-primary" disabled>
+                  Create Draft
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -529,9 +874,17 @@ export function AssessmentBuilderWorkspace({
             tabIndex={0}
           >
             <div className="ab-ph-top">
-              <span className="ab-ph-name">{assessment.clientName}</span>
-              <button type="button" className="ab-ph-edit" disabled>
-                ✎ Edit
+              <span className="ab-ph-name">{localAssessment.clientName}</span>
+              <button
+                type="button"
+                className={`ab-ph-edit ${configMode ? 'ab-ph-edit-on' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (configMode) closeConfigMode();
+                  else openConfigMode();
+                }}
+              >
+                {configMode ? 'Close' : '✎ Edit'}
               </button>
             </div>
             <div
@@ -542,7 +895,16 @@ export function AssessmentBuilderWorkspace({
               <span className="ab-pill" onClick={() => setDrawerOpen((o) => !o)}>
                 👤 {stk} stakeholder{stk !== 1 ? 's' : ''}
               </span>
-              <span className="ab-pill">📄 {docs} document{docs !== 1 ? 's' : ''}</span>
+              <span
+                className="ab-pill"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // TODO SEI-43: Open transcript drawer with split-screen document reader.
+                  setDrawerOpen((o) => !o);
+                }}
+              >
+                📄 {docs} document{docs !== 1 ? 's' : ''}
+              </span>
             </div>
           </div>
           <div className={`ab-drawer ${drawerOpen ? 'open' : ''}`}>
@@ -550,7 +912,7 @@ export function AssessmentBuilderWorkspace({
               <div>
                 <div className="ab-dr-lbl">Stakeholders</div>
                 <div className="ab-chip-row">
-                  {assessment.stakeholders.map((s) => (
+                  {localAssessment.stakeholders.map((s) => (
                     <span key={s} className="ab-chip">
                       {s}
                     </span>
@@ -560,7 +922,7 @@ export function AssessmentBuilderWorkspace({
               <div>
                 <div className="ab-dr-lbl">Documents</div>
                 <div className="ab-doc-pills">
-                  {assessment.documents.map((d) => (
+                  {localAssessment.documents.map((d) => (
                     <span key={d.id} className="ab-doc-pill">
                       <svg
                         width="11"
@@ -595,20 +957,35 @@ export function AssessmentBuilderWorkspace({
                   </div>
                 );
               }
+              if (msg.role === 'a' && 'kind' in msg && msg.kind === 'status') {
+                return (
+                  <div key={i} className="ab-msg-row ab-msg-row-status">
+                    <div className="ab-bubble ab-bubble-status">{msg.text}</div>
+                  </div>
+                );
+              }
               if (msg.role === 'a' && 'kind' in msg && msg.kind === 'suggestion') {
                 return (
-                  <div key={i} className="ab-msg-row">
-                    <span className="ab-msg-who ab-msg-who-a">SEI Guide</span>
+                  <div key={i} className="ab-msg-row ab-msg-row-suggestion">
                     <div className="ab-sug-card">
-                      <div className="ab-sug-lbl">Suggested change ({msg.section})</div>
-                      <div className="ab-sug-body" dangerouslySetInnerHTML={{ __html: msg.html }} />
-                      <button
-                        type="button"
-                        className="ab-sug-apply"
-                        onClick={() => applySuggestion(msg.section, msg.html)}
-                      >
-                        Apply
-                      </button>
+                      <div className="ab-sug-card-title">{SECTION_LABELS[msg.section]}</div>
+                      <p className="ab-sug-summary-line">{msg.summary}</p>
+                      <div className="ab-sug-card-actions">
+                        <button
+                          type="button"
+                          className="ab-sug-apply-update"
+                          onClick={() => applySuggestion(msg.section, msg.html)}
+                        >
+                          Apply update
+                        </button>
+                        <button
+                          type="button"
+                          className="ab-sug-dismiss"
+                          onClick={() => dismissSuggestion(msg.section)}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -762,6 +1139,18 @@ export function AssessmentBuilderWorkspace({
                   <button type="button" className="ab-hl" style={{ background: 'rgba(232,93,117,.6)' }} aria-label="Red" onClick={() => applyHL('red')} />
                   <button type="button" className="ab-hl" style={{ background: 'rgba(80,150,255,.6)' }} aria-label="Blue" onClick={() => applyHL('blue')} />
                   <button type="button" className="ab-hl" style={{ background: 'rgba(155,109,255,.6)' }} aria-label="Purple" onClick={() => applyHL('purple')} />
+                  <button
+                    type="button"
+                    className="ab-hl-erase"
+                    title="Remove highlight"
+                    aria-label="Remove highlight from selection"
+                    onClick={() => clearHighlightFromSelection()}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                      <path d="M20 20H7L3 16c-.6-.6-.6-1.5 0-2.1l10-10c.6-.6 1.5-.6 2.1 0l4 4c.6.6.6 1.5 0 2.1L11 20" />
+                      <path d="M6 11l8 8" />
+                    </svg>
+                  </button>
                   <div className="ab-tbar-pub">
                     <button
                       type="button"

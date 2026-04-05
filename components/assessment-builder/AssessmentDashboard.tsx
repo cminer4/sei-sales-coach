@@ -47,6 +47,19 @@ export function AssessmentDashboard({ initialRows }: { initialRows: DashboardRow
     setRowList(initialRows);
   }, [initialRows]);
 
+  useEffect(() => {
+    if (!confirmArchiveId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirmArchiveId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirmArchiveId]);
+
+  const archiveRow = confirmArchiveId
+    ? rowList.find((r) => r.id === confirmArchiveId) ?? null
+    : null;
+
   async function confirmArchive(id: string) {
     setArchivePending(true);
     try {
@@ -66,6 +79,10 @@ export function AssessmentDashboard({ initialRows }: { initialRows: DashboardRow
     } finally {
       setArchivePending(false);
     }
+  }
+
+  function closeArchiveModal() {
+    if (!archivePending) setConfirmArchiveId(null);
   }
 
   function setFilter(f: DashboardStatusFilter) {
@@ -274,58 +291,75 @@ export function AssessmentDashboard({ initialRows }: { initialRows: DashboardRow
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
-                  {confirmArchiveId === r.id ? (
-                    <div className="ab-archive-confirm">
-                      <span className="ab-archive-confirm-q">Archive this assessment?</span>
-                      <button
-                        type="button"
-                        className="ab-archive-confirm-btn"
-                        disabled={archivePending}
-                        onClick={() => void confirmArchive(r.id)}
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        type="button"
-                        className="ab-archive-cancel-btn"
-                        disabled={archivePending}
-                        onClick={() => setConfirmArchiveId(null)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className="ab-archive-icon-btn"
-                      title="Archive assessment"
-                      aria-label={`Archive assessment ${r.clientName}`}
-                      onClick={() => setConfirmArchiveId(r.id)}
+                  <button
+                    type="button"
+                    className="ab-archive-icon-btn"
+                    title="Archive assessment"
+                    aria-label={`Archive assessment ${r.clientName}`}
+                    onClick={() => setConfirmArchiveId(r.id)}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
                     >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden
-                      >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        <line x1="10" y1="11" x2="10" y2="17" />
-                        <line x1="14" y1="11" x2="14" y2="17" />
-                      </svg>
-                    </button>
-                  )}
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                  </button>
                 </td>
               </tr>
             ))
           )}
         </tbody>
       </table>
+      ) : null}
+
+      {archiveRow ? (
+        <div
+          className="ab-dash-modal-backdrop"
+          role="presentation"
+          onClick={closeArchiveModal}
+        >
+          <div
+            className="ab-dash-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ab-archive-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="ab-archive-modal-title" className="ab-dash-modal-title">
+              Archive this assessment?
+            </h2>
+            <p className="ab-dash-modal-sub">{archiveRow.clientName}</p>
+            <div className="ab-dash-modal-actions">
+              <button
+                type="button"
+                className="ab-dash-modal-cancel"
+                disabled={archivePending}
+                onClick={closeArchiveModal}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ab-dash-modal-archive"
+                disabled={archivePending}
+                onClick={() => void confirmArchive(archiveRow.id)}
+              >
+                Archive
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
