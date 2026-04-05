@@ -65,7 +65,9 @@ export function buildAssessmentDraftGenerationPrompt(params: {
 
 /** Hardcoded system instructions for refine (fallback when `agents.prompt` is empty). */
 export function buildAssessmentRefineSystemFallback(): string {
-  return `Respond with valid JSON only, no markdown fences. Always include "reply" as the first key:
+  return `Return only raw valid JSON. No markdown fences, no backticks, no preamble, no explanation. Start your response with { and end with }.
+
+Respond with valid JSON only, no markdown fences. Always include "reply" as the first key:
 {
   "reply": "1-3 sentences addressing the consultant in plain language (SEI Guide chat bubble).",
   "draft": {

@@ -1472,6 +1472,8 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
   height: 40px;
   background: #f9f8f6;
   background-color: #f9f8f6;
@@ -1481,27 +1483,6 @@
   padding: 0 12px;
   gap: 2px;
   flex-shrink: 0;
-  margin: -44px -52px 28px;
-  isolation: isolate;
-}
-
-/* Full-bleed opaque strip so document text does not show through negative margins while scrolling. */
-.ab-tbar::before {
-  content: '';
-  position: absolute;
-  left: -52px;
-  right: -52px;
-  top: 0;
-  bottom: 0;
-  background: #f9f8f6;
-  border-bottom: 1px solid #ede9e4;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.ab-tbar > * {
-  position: relative;
-  z-index: 1;
 }
 
 .ab-tb {
@@ -1587,9 +1568,6 @@
 }
 
 .ab-tbar-pub {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   margin-left: auto;
   display: flex;
   align-items: center;

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export const maxDuration = 60; // seconds (Vercel / Next.js App Router)
 import Anthropic from '@anthropic-ai/sdk';
 import prisma from '@/lib/prisma';
 import { STUB_USER_ID } from '@/lib/assessment-builder-stub-user';
 import { anthropicMessageText, ASSESSMENT_BUILDER_MODEL } from '@/lib/assessment-builder-anthropic';
 import type { DraftContent } from '@/lib/assessment-builder-draft-types';
-import type { DraftSectionKey } from '@/lib/assessment-builder-draft-types';
+import { isDraftSectionKey, type DraftSectionKey } from '@/lib/assessment-builder-draft-types';
 import {
   mergeRefinedDraft,
   parseDraftObject,
-  parseRefineJsonString,
+  draftContentFromDb,
+  prepareDraftJsonForParse,
+  type RefineResponsePayload,
 } from '@/lib/assessment-builder-draft-schema';
 import { getAssessmentBuilderAgent } from '@/lib/assessment-builder-agent';
 import {
@@ -22,6 +22,8 @@ import {
   retrieveAssessmentChunks,
   retrieveKbChunksForBuilder,
 } from '@/lib/assessment-builder-retrieval';
+
+export const maxDuration = 60; // seconds (Vercel / Next.js App Router)
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -104,10 +106,40 @@ export async function POST(request: NextRequest) {
       messages: [{ role: 'user', content: userContent }],
     });
 
-    const raw = anthropicMessageText(msg.content);
-    let parsed;
+    const rawClaudeText = anthropicMessageText(msg.content);
+    console.log('[assessment-builder/refine-section] claude raw', rawClaudeText.slice(0, 500));
+
+    const cleaned = rawClaudeText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+
+    let parsed: RefineResponsePayload;
     try {
-      parsed = parseRefineJsonString(raw);
+      const jsonStr = prepareDraftJsonForParse(cleaned);
+      const root = JSON.parse(jsonStr) as unknown;
+      if (typeof root !== 'object' || root === null) {
+        throw new Error('Refine JSON must be an object');
+      }
+      const o = root as Record<string, unknown>;
+      const draftObj = o.draft ?? o;
+      const draft = draftContentFromDb(draftObj);
+      if (!draft) {
+        throw new Error('Refine JSON must include draft object');
+      }
+      const reply = typeof o.reply === 'string' ? o.reply : undefined;
+      const suggestions: Partial<Record<DraftSectionKey, string>> = {};
+      const sug = o.suggestions;
+      if (sug !== undefined) {
+        if (typeof sug !== 'object' || sug === null) {
+          throw new Error('Invalid suggestions');
+        }
+        for (const k of Object.keys(sug)) {
+          if (!isDraftSectionKey(k)) continue;
+          const v = (sug as Record<string, unknown>)[k];
+          if (typeof v === 'string') {
+            suggestions[k] = v;
+          }
+        }
+      }
+      parsed = { reply, draft, suggestions };
     } catch (parseErr) {
       console.error('[assessment-builder/refine-section] JSON parse', parseErr);
       return NextResponse.json(

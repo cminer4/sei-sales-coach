@@ -1491,87 +1491,87 @@ export function AssessmentBuilderWorkspace({
                 aria-hidden={!documentPainted}
               >
                 <div className="ab-escroll">
-                  <div className="ab-docpage">
-                <div className="ab-tbar">
-                  <button
-                    type="button"
-                    className={`ab-tb${toolbarFmt.bold ? ' on' : ''}`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => fmt('bold')}
-                    title="Bold"
-                  >
-                    <b>B</b>
-                  </button>
-                  <button
-                    type="button"
-                    className={`ab-tb${toolbarFmt.italic ? ' on' : ''}`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => fmt('italic')}
-                    title="Italic"
-                  >
-                    <i>I</i>
-                  </button>
-                  <button
-                    type="button"
-                    className={`ab-tb${toolbarFmt.ul ? ' on' : ''}`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => fmt('ul')}
-                    title="Bullets"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="8" y1="6" x2="21" y2="6" />
-                      <line x1="8" y1="12" x2="21" y2="12" />
-                      <line x1="8" y1="18" x2="21" y2="18" />
-                      <line x1="3" y1="6" x2="3.01" y2="6" />
-                      <line x1="3" y1="12" x2="3.01" y2="12" />
-                      <line x1="3" y1="18" x2="3.01" y2="18" />
-                    </svg>
-                  </button>
-                  <div className="ab-tb-div" />
-                  <span className="ab-hl-lbl">Highlight</span>
-                  <button type="button" className="ab-hl" style={{ background: 'rgba(255,210,0,.75)' }} aria-label="Yellow" onClick={() => applyHL('yellow')} />
-                  <button type="button" className="ab-hl" style={{ background: 'rgba(78,203,141,.65)' }} aria-label="Green" onClick={() => applyHL('green')} />
-                  <button type="button" className="ab-hl" style={{ background: 'rgba(232,93,117,.6)' }} aria-label="Red" onClick={() => applyHL('red')} />
-                  <button type="button" className="ab-hl" style={{ background: 'rgba(80,150,255,.6)' }} aria-label="Blue" onClick={() => applyHL('blue')} />
-                  <button type="button" className="ab-hl" style={{ background: 'rgba(155,109,255,.6)' }} aria-label="Purple" onClick={() => applyHL('purple')} />
-                  <button
-                    type="button"
-                    className="ab-hl-erase"
-                    title="Remove highlight"
-                    aria-label="Remove highlight from selection"
-                    onClick={() => clearHighlightFromSelection()}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-                      <path d="M20 20H7L3 16c-.6-.6-.6-1.5 0-2.1l10-10c.6-.6 1.5-.6 2.1 0l4 4c.6.6.6 1.5 0 2.1L11 20" />
-                      <path d="M6 11l8 8" />
-                    </svg>
-                  </button>
-                  <div className="ab-tbar-pub">
+                  <div className="ab-tbar">
                     <button
                       type="button"
-                      className="ab-publish-draft"
-                      disabled={!documentPainted || publishing}
-                      onClick={() => void handlePublish()}
+                      className={`ab-tb${toolbarFmt.bold ? ' on' : ''}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => fmt('bold')}
+                      title="Bold"
                     >
-                      {publishing ? (
-                        <span className="ab-publish-draft-spin" aria-hidden />
-                      ) : null}
-                      Publish Draft
+                      <b>B</b>
                     </button>
+                    <button
+                      type="button"
+                      className={`ab-tb${toolbarFmt.italic ? ' on' : ''}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => fmt('italic')}
+                      title="Italic"
+                    >
+                      <i>I</i>
+                    </button>
+                    <button
+                      type="button"
+                      className={`ab-tb${toolbarFmt.ul ? ' on' : ''}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => fmt('ul')}
+                      title="Bullets"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6" />
+                        <line x1="8" y1="12" x2="21" y2="12" />
+                        <line x1="8" y1="18" x2="21" y2="18" />
+                        <line x1="3" y1="6" x2="3.01" y2="6" />
+                        <line x1="3" y1="12" x2="3.01" y2="12" />
+                        <line x1="3" y1="18" x2="3.01" y2="18" />
+                      </svg>
+                    </button>
+                    <div className="ab-tb-div" />
+                    <span className="ab-hl-lbl">Highlight</span>
+                    <button type="button" className="ab-hl" style={{ background: 'rgba(255,210,0,.75)' }} aria-label="Yellow" onClick={() => applyHL('yellow')} />
+                    <button type="button" className="ab-hl" style={{ background: 'rgba(78,203,141,.65)' }} aria-label="Green" onClick={() => applyHL('green')} />
+                    <button type="button" className="ab-hl" style={{ background: 'rgba(232,93,117,.6)' }} aria-label="Red" onClick={() => applyHL('red')} />
+                    <button type="button" className="ab-hl" style={{ background: 'rgba(80,150,255,.6)' }} aria-label="Blue" onClick={() => applyHL('blue')} />
+                    <button type="button" className="ab-hl" style={{ background: 'rgba(155,109,255,.6)' }} aria-label="Purple" onClick={() => applyHL('purple')} />
+                    <button
+                      type="button"
+                      className="ab-hl-erase"
+                      title="Remove highlight"
+                      aria-label="Remove highlight from selection"
+                      onClick={() => clearHighlightFromSelection()}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                        <path d="M20 20H7L3 16c-.6-.6-.6-1.5 0-2.1l10-10c.6-.6 1.5-.6 2.1 0l4 4c.6.6.6 1.5 0 2.1L11 20" />
+                        <path d="M6 11l8 8" />
+                      </svg>
+                    </button>
+                    <div className="ab-tbar-pub">
+                      <button
+                        type="button"
+                        className="ab-publish-draft"
+                        disabled={!documentPainted || publishing}
+                        onClick={() => void handlePublish()}
+                      >
+                        {publishing ? (
+                          <span className="ab-publish-draft-spin" aria-hidden />
+                        ) : null}
+                        Publish Draft
+                      </button>
+                    </div>
+                  </div>
+                  <div className="ab-docpage">
+                    <div
+                      ref={editorRef}
+                      className="ab-doc-editor"
+                      contentEditable={false}
+                      spellCheck={false}
+                      onInput={onEditorInput}
+                      onKeyDown={onEditorKeyDown}
+                    />
                   </div>
                 </div>
-                <div
-                  ref={editorRef}
-                  className="ab-doc-editor"
-                  contentEditable={false}
-                  spellCheck={false}
-                  onInput={onEditorInput}
-                  onKeyDown={onEditorKeyDown}
-                />
               </div>
-            </div>
-          </div>
-        )}
+            )}
           </div>
         </div>
       </div>
