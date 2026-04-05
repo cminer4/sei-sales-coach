@@ -5,7 +5,11 @@ import { STUB_USER_ID } from '@/lib/assessment-builder-stub-user';
 import { anthropicMessageText, ASSESSMENT_BUILDER_MODEL } from '@/lib/assessment-builder-anthropic';
 import { parseDraftJsonString } from '@/lib/assessment-builder-draft-schema';
 import { persistAssessmentDraft } from '@/lib/assessment-builder-persist-draft';
-import { buildAssessmentDraftGenerationPrompt } from '@/lib/prompts';
+import { getAssessmentBuilderAgent } from '@/lib/assessment-builder-agent';
+import {
+  buildAssessmentDraftGenerationSystemFallback,
+  buildAssessmentDraftGenerationUserContent,
+} from '@/lib/prompts';
 import {
   buildRetrievalQueryText,
   retrieveAssessmentChunks,
@@ -48,7 +52,10 @@ export async function POST(request: NextRequest) {
       retrieveKbChunksForBuilder(queryText, 4),
     ]);
 
-    const prompt = buildAssessmentDraftGenerationPrompt({
+    const agent = await getAssessmentBuilderAgent();
+    const systemPrompt =
+      agent?.prompt?.trim() || buildAssessmentDraftGenerationSystemFallback();
+    const userContent = buildAssessmentDraftGenerationUserContent({
       clientName: row.client_name,
       projectBrief: row.project_brief,
       stakeholders: row.stakeholders,
@@ -60,7 +67,8 @@ export async function POST(request: NextRequest) {
     const msg = await client.messages.create({
       model: ASSESSMENT_BUILDER_MODEL,
       max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
     });
 
     const raw = anthropicMessageText(msg.content);

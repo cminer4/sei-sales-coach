@@ -11,7 +11,11 @@ import {
   parseRefineJsonString,
 } from '@/lib/assessment-builder-draft-schema';
 import { persistAssessmentDraft } from '@/lib/assessment-builder-persist-draft';
-import { buildAssessmentRefinePrompt } from '@/lib/prompts';
+import { getAssessmentBuilderAgent } from '@/lib/assessment-builder-agent';
+import {
+  buildAssessmentRefineSystemFallback,
+  buildAssessmentRefineUserContent,
+} from '@/lib/prompts';
 import {
   buildRetrievalQueryText,
   retrieveAssessmentChunks,
@@ -78,7 +82,10 @@ export async function POST(request: NextRequest) {
       retrieveKbChunksForBuilder(queryText + '\n' + userMessage, 4),
     ]);
 
-    const prompt = buildAssessmentRefinePrompt({
+    const agent = await getAssessmentBuilderAgent();
+    const systemPrompt =
+      agent?.prompt?.trim() || buildAssessmentRefineSystemFallback();
+    const userContent = buildAssessmentRefineUserContent({
       clientName: row.client_name,
       projectBrief: row.project_brief,
       userMessage,
@@ -92,7 +99,8 @@ export async function POST(request: NextRequest) {
     const msg = await client.messages.create({
       model: ASSESSMENT_BUILDER_MODEL,
       max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
     });
 
     const raw = anthropicMessageText(msg.content);

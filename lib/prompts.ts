@@ -1,7 +1,23 @@
 import type { DraftContent } from '@/lib/assessment-builder-draft-types';
 import type { AssessmentChunkHit, KbChunkHit } from '@/lib/assessment-builder-retrieval';
 
-export function buildAssessmentDraftGenerationPrompt(params: {
+/** Hardcoded system instructions for draft generation (fallback when `agents.prompt` is empty). */
+export function buildAssessmentDraftGenerationSystemFallback(): string {
+  return `You are an SEI consultant drafting a Discovery document for an AI readiness assessment.
+
+Use the materials below. Do not invent specific quotes, numbers, or named facts that are not supported by the excerpts. If evidence is thin, say so in neutral professional language.
+
+Return valid JSON only, no markdown fences, with five keys. Each value must be HTML fragments (no outer <html> or <body>), using <p>, <ul>/<li>, <strong>, <em> as needed. No markdown.
+
+Keys (exactly):
+- "findings": Discovery Findings section body HTML only (no h2 — the UI adds headings).
+- "interviews": Stakeholder Interviews section body HTML.
+- "hypothesis": Hypothesis Brief section body HTML.
+- "stakeholder_map": Stakeholder Map section body HTML.
+- "opportunities": Opportunity Shortlist section body HTML.`;
+}
+
+export function buildAssessmentDraftGenerationUserContent(params: {
   clientName: string;
   projectBrief: string | null;
   stakeholders: string[];
@@ -34,23 +50,43 @@ export function buildAssessmentDraftGenerationPrompt(params: {
       : '(no KB chunks — use conservative generic structure)',
   ].join('\n');
 
-  return `You are an SEI consultant drafting a Discovery document for an AI readiness assessment.
-
-Use the materials below. Do not invent specific quotes, numbers, or named facts that are not supported by the excerpts. If evidence is thin, say so in neutral professional language.
-
-Return valid JSON only, no markdown fences, with five keys. Each value must be HTML fragments (no outer <html> or <body>), using <p>, <ul>/<li>, <strong>, <em> as needed. No markdown.
-
-Keys (exactly):
-- "findings": Discovery Findings section body HTML only (no h2 — the UI adds headings).
-- "interviews": Stakeholder Interviews section body HTML.
-- "hypothesis": Hypothesis Brief section body HTML.
-- "stakeholder_map": Stakeholder Map section body HTML.
-- "opportunities": Opportunity Shortlist section body HTML.
-
-${context}`;
+  return context;
 }
 
-export function buildAssessmentRefinePrompt(params: {
+export function buildAssessmentDraftGenerationPrompt(params: {
+  clientName: string;
+  projectBrief: string | null;
+  stakeholders: string[];
+  assessmentChunks: AssessmentChunkHit[];
+  kbChunks: KbChunkHit[];
+}): string {
+  return `${buildAssessmentDraftGenerationSystemFallback()}\n\n${buildAssessmentDraftGenerationUserContent(params)}`;
+}
+
+/** Hardcoded system instructions for refine (fallback when `agents.prompt` is empty). */
+export function buildAssessmentRefineSystemFallback(): string {
+  return `Respond with valid JSON only, no markdown fences. Always include "reply" as the first key:
+{
+  "reply": "1-3 sentences addressing the consultant in plain language (SEI Guide chat bubble).",
+  "draft": {
+    "findings": "... HTML ...",
+    "interviews": "...",
+    "hypothesis": "...",
+    "stakeholder_map": "...",
+    "opportunities": "..."
+  },
+  "suggestions": {
+  }
+}
+
+Rules:
+- For sections NOT listed as manually edited, you may update HTML in "draft" with improved content based on the user message and sources.
+- For manually edited sections, copy the existing HTML from the current draft into "draft" unchanged for those keys, and put your proposed improved HTML only under "suggestions" with the same keys (only when you have a concrete proposal).
+- If you have no proposal for a dirty section, omit that key from "suggestions".
+- Never remove or alter protected section content inside "draft" — keep it identical to the input for those keys.`;
+}
+
+export function buildAssessmentRefineUserContent(params: {
   clientName: string;
   projectBrief: string | null;
   userMessage: string;
@@ -93,26 +129,18 @@ Sections the consultant has manually edited (protected — do not change these i
 
 User message: ${params.userMessage}
 
-${rag}
-
-Respond with valid JSON only, no markdown fences. Always include "reply" as the first key:
-{
-  "reply": "1-3 sentences addressing the consultant in plain language (SEI Guide chat bubble).",
-  "draft": {
-    "findings": "... HTML ...",
-    "interviews": "...",
-    "hypothesis": "...",
-    "stakeholder_map": "...",
-    "opportunities": "..."
-  },
-  "suggestions": {
-  }
+${rag}`;
 }
 
-Rules:
-- For sections NOT listed as manually edited, you may update HTML in "draft" with improved content based on the user message and sources.
-- For manually edited sections, copy the existing HTML from the current draft into "draft" unchanged for those keys, and put your proposed improved HTML only under "suggestions" with the same keys (only when you have a concrete proposal).
-- If you have no proposal for a dirty section, omit that key from "suggestions".
-- Never remove or alter protected section content inside "draft" — keep it identical to the input for those keys.
-`;
+export function buildAssessmentRefinePrompt(params: {
+  clientName: string;
+  projectBrief: string | null;
+  userMessage: string;
+  currentDraft: DraftContent;
+  /** Section keys the user has manually edited — never replace these in draft; use suggestions only. */
+  dirtySections: string[];
+  assessmentChunks: AssessmentChunkHit[];
+  kbChunks: KbChunkHit[];
+}): string {
+  return `${buildAssessmentRefineUserContent(params)}\n\n${buildAssessmentRefineSystemFallback()}`;
 }
