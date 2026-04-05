@@ -124,7 +124,10 @@ export async function POST(request: NextRequest) {
         'Thanks — I have updated the Discovery draft based on your input.',
     });
   } catch (e) {
-    console.error('[assessment-builder/refine-section]', e);
+    console.error('[assessment-builder/refine-section] unhandled', e);
+    if (e instanceof Error && e.stack) {
+      console.error('[assessment-builder/refine-section] stack', e.stack);
+    }
     return NextResponse.json({ error: 'Refine failed' }, { status: 500 });
   }
 }

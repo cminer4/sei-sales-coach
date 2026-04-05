@@ -11,6 +11,7 @@ import {
   parseDraftSectionsFromEditorRoot,
 } from '@/lib/assessment-builder-document-html';
 import { parseTranscriptForDisplay } from '@/lib/assessment-builder-transcript-lines';
+import { draftContentFromDb } from '@/lib/assessment-builder-draft-schema';
 
 export type WorkspaceAssessment = {
   id: string;
@@ -85,167 +86,99 @@ function unwrapMark(el: HTMLElement) {
   }
 }
 
-function sortElementsByDocumentOrder<T extends Element>(elements: T[]): T[] {
-  return [...elements].sort((a, b) => {
-    const pos = a.compareDocumentPosition(b);
-    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
-    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
-    return 0;
-  });
+/** Direct child of [data-section] that contains the caret (block-level node). */
+function getDirectBlockChild(section: HTMLElement, range: Range): HTMLElement | null {
+  if (!section.contains(range.commonAncestorContainer)) return null;
+  let node: Node | null = range.commonAncestorContainer;
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+  while (node && node !== section) {
+    if (node.parentNode === section && node.nodeType === Node.ELEMENT_NODE) {
+      return node as HTMLElement;
+    }
+    node = node.parentNode;
+  }
+  return null;
 }
 
-function getParagraphBlocksInRange(
-  section: HTMLElement,
-  range: Range,
-): HTMLParagraphElement[] {
-  if (range.collapsed) {
-    const n = range.startContainer;
-    const el = n.nodeType === Node.TEXT_NODE ? n.parentElement : (n as Element);
-    const p = el?.closest('p');
-    if (p && section.contains(p) && !p.closest('li')) {
-      return [p as HTMLParagraphElement];
-    }
-    return [];
+function unwrapLiToP(li: HTMLLIElement): HTMLParagraphElement {
+  const ul = li.parentElement;
+  const p = document.createElement('p');
+  while (li.firstChild) p.appendChild(li.firstChild);
+  if (ul?.parentNode) {
+    ul.parentNode.insertBefore(p, li);
   }
-  const out: HTMLParagraphElement[] = [];
-  section.querySelectorAll<HTMLParagraphElement>('p').forEach((p) => {
-    if (!p.closest('li')) {
-      try {
-        if (range.intersectsNode(p)) out.push(p);
-      } catch {
-        /* intersectsNode unsupported */
-      }
-    }
-  });
-  return out;
+  li.remove();
+  if (ul && !ul.querySelector('li')) ul.remove();
+  return p;
 }
 
-function unwrapListItemsToParagraphs(section: HTMLElement, range: Range): boolean {
-  const liSet = new Set<HTMLLIElement>();
-  const addLiFromNode = (node: Node | null) => {
-    const el =
-      node?.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element | null);
-    const li = el?.closest?.('li') as HTMLLIElement | null;
-    if (li && section.contains(li) && li.closest('ul')) {
-      liSet.add(li);
-    }
-  };
-  addLiFromNode(range.startContainer);
-  addLiFromNode(range.endContainer);
-  if (!range.collapsed) {
-    section.querySelectorAll('li').forEach((li) => {
-      try {
-        if (range.intersectsNode(li)) {
-          liSet.add(li as HTMLLIElement);
-        }
-      } catch {
-        /* intersectsNode unsupported */
-      }
-    });
-  }
-  if (liSet.size === 0) return false;
-  const items = sortElementsByDocumentOrder(Array.from(liSet));
-  let firstP: HTMLParagraphElement | null = null;
-  for (const li of items) {
-    const ul = li.parentElement;
-    if (!ul) continue;
-    const p = document.createElement('p');
-    while (li.firstChild) p.appendChild(li.firstChild);
-    if (!firstP) firstP = p;
-    ul.insertBefore(p, li);
-    li.remove();
-    if (ul.childNodes.length === 0) ul.remove();
-  }
-  const sel = window.getSelection();
-  if (sel && firstP) {
-    sel.removeAllRanges();
-    const r = document.createRange();
-    r.setStart(firstP, 0);
-    r.collapse(true);
-    sel.addRange(r);
-  }
-  return true;
+/** Replace block with ul > li carrying the same children. No execCommand. */
+function wrapBlockInUlLi(block: HTMLElement): HTMLLIElement | null {
+  const parent = block.parentNode;
+  if (!parent) return null;
+  const ul = document.createElement('ul');
+  const li = document.createElement('li');
+  while (block.firstChild) li.appendChild(block.firstChild);
+  ul.appendChild(li);
+  parent.replaceChild(ul, block);
+  return li;
 }
 
 /**
- * Toggle unordered list inside a [data-section] without insertUnorderedList (avoids indent-only behavior).
- * Returns true if DOM was updated; false if caller should try insertMinimalListAtCaret.
+ * Bullet toggle: wrap the caret's block in ul>li, or unwrap li back to p if already in a list.
  */
-function manualToggleUnorderedList(editorRoot: HTMLElement): boolean {
+function toggleBulletList(section: HTMLElement): boolean {
   const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return false;
+  if (!sel?.rangeCount) return false;
   const range = sel.getRangeAt(0);
-
-  const blockEnd = (node: Node) =>
-    node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element);
-  const startSection = blockEnd(range.startContainer)?.closest?.('[data-section]') as HTMLElement | null;
-  const endSection = blockEnd(range.endContainer)?.closest?.('[data-section]') as HTMLElement | null;
-  if (!startSection || startSection !== endSection || !editorRoot.contains(startSection)) {
-    return false;
-  }
-  const section = startSection;
-
   const startEl =
     range.startContainer.nodeType === Node.TEXT_NODE
       ? range.startContainer.parentElement
       : (range.startContainer as Element);
-  const liAncestor = startEl?.closest?.('li');
-  const inLi =
-    !!liAncestor &&
-    section.contains(liAncestor) &&
-    !!liAncestor.closest('ul');
-
-  if (inLi) {
-    return unwrapListItemsToParagraphs(section, range);
-  }
-
-  const blocks = getParagraphBlocksInRange(section, range);
-  if (blocks.length === 0) return false;
-  const unique = sortElementsByDocumentOrder([...new Set(blocks)]);
-
-  const ref = unique[0];
-  const parent = ref.parentNode;
-  if (!parent) return false;
-  const ul = document.createElement('ul');
-  parent.insertBefore(ul, ref);
-  for (const p of unique) {
-    const li = document.createElement('li');
-    while (p.firstChild) li.appendChild(p.firstChild);
-    ul.appendChild(li);
-    p.remove();
-  }
-  sel.removeAllRanges();
-  const r = document.createRange();
-  const firstLi = ul.firstChild as HTMLElement | null;
-  if (firstLi) {
-    r.selectNodeContents(firstLi);
+  const li = startEl?.closest?.('li') as HTMLLIElement | undefined;
+  if (li && section.contains(li)) {
+    const p = unwrapLiToP(li);
+    sel.removeAllRanges();
+    const r = document.createRange();
+    r.setStart(p, 0);
     r.collapse(true);
     sel.addRange(r);
+    return true;
   }
+  const block = getDirectBlockChild(section, range);
+  if (!block) return false;
+  if (block.tagName === 'UL' || block.tagName === 'OL') {
+    const innerLi = startEl?.closest?.('li') as HTMLLIElement | undefined;
+    if (innerLi && section.contains(innerLi)) {
+      const p = unwrapLiToP(innerLi);
+      sel.removeAllRanges();
+      const r = document.createRange();
+      r.setStart(p, 0);
+      r.collapse(true);
+      sel.addRange(r);
+      return true;
+    }
+    return false;
+  }
+  const newLi = wrapBlockInUlLi(block);
+  if (!newLi) return false;
+  sel.removeAllRanges();
+  const r = document.createRange();
+  r.selectNodeContents(newLi);
+  r.collapse(true);
+  sel.addRange(r);
   return true;
 }
 
-/**
- * When toggle list cannot wrap existing blocks (e.g. caret in empty section), insert ul > li manually.
- * No document.execCommand('insertUnorderedList').
- */
-function insertMinimalListAtCaret(section: HTMLElement, range: Range): boolean {
-  if (!section.contains(range.commonAncestorContainer)) return false;
-  const ul = document.createElement('ul');
-  const li = document.createElement('li');
-  li.appendChild(document.createElement('br'));
-  ul.appendChild(li);
-  range.deleteContents();
-  range.insertNode(ul);
-  const sel = window.getSelection();
-  if (sel) {
-    sel.removeAllRanges();
-    const r = document.createRange();
-    r.setStart(li, 0);
-    r.collapse(true);
-    sel.addRange(r);
+function parseSuggestionsFromResponse(raw: unknown): Partial<Record<DraftSectionKey, string>> {
+  if (typeof raw !== 'object' || raw === null) return {};
+  const o = raw as Record<string, unknown>;
+  const out: Partial<Record<DraftSectionKey, string>> = {};
+  for (const k of DRAFT_SECTION_KEYS) {
+    const v = o[k];
+    if (typeof v === 'string') out[k] = v;
   }
-  return true;
+  return out;
 }
 
 /** Prototype DEMO[0] — client name in strong; escape minimal for safe HTML. */
@@ -502,7 +435,7 @@ export function AssessmentBuilderWorkspace({
 
   useEffect(() => {
     msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, sending]);
 
   const persistDraft = useCallback(
     async (d: DraftContent) => {
@@ -723,23 +656,12 @@ export function AssessmentBuilderWorkspace({
           ? anchor.parentElement
           : (anchor as Element)
         )?.closest?.('[data-section]');
-      (
+      const section =
         secEl instanceof HTMLElement
           ? secEl
-          : root.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]')
-      )?.focus();
-      const ok = manualToggleUnorderedList(root);
-      if (!ok && sel && sel.rangeCount > 0) {
-        const r = sel.getRangeAt(0);
-        const startEl =
-          r.startContainer.nodeType === Node.TEXT_NODE
-            ? r.startContainer.parentElement
-            : (r.startContainer as Element);
-        const startSection = startEl?.closest?.('[data-section]') as HTMLElement | null;
-        if (startSection && root.contains(startSection)) {
-          insertMinimalListAtCaret(startSection, r);
-        }
-      }
+          : root.querySelector<HTMLElement>('.ab-sec[contenteditable="true"]');
+      section?.focus();
+      if (section) toggleBulletList(section);
       onEditorInput();
       return;
     }
@@ -829,29 +751,83 @@ export function AssessmentBuilderWorkspace({
           dirtySections,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Refine failed');
 
-      const merged = data.draft as DraftContent;
+      const rawText = await res.text();
+      let data: Record<string, unknown> = {};
+      try {
+        data = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : {};
+      } catch (parseErr) {
+        console.error(
+          '[assessment-builder] refine-section response is not JSON',
+          res.status,
+          rawText.slice(0, 800),
+          parseErr,
+        );
+        throw new Error('Invalid response from server');
+      }
+
+      if (!res.ok) {
+        console.error('[assessment-builder] refine-section HTTP error', res.status, data);
+        throw new Error(typeof data.error === 'string' ? data.error : 'Refine failed');
+      }
+
+      const merged = draftContentFromDb(data.draft);
+      if (!merged) {
+        console.error('[assessment-builder] refine-section missing or invalid draft field', data);
+        throw new Error('Invalid draft in response');
+      }
+
+      const suggestions = parseSuggestionsFromResponse(data.suggestions);
+
+      const ed = editorRef.current;
+      if (ed) {
+        for (const k of DRAFT_SECTION_KEYS) {
+          if (!dirty[k]) {
+            const sec = ed.querySelector(`[data-section="${k}"]`);
+            if (sec) sec.innerHTML = merged[k];
+          }
+        }
+      }
+      setDraft(merged);
+      void persistDraft(merged);
 
       const replyText = typeof data.reply === 'string' ? data.reply : '';
-      const suggestionMsgs: ChatMsg[] = [];
+
+      const updateMsgs: ChatMsg[] = [];
       for (const k of DRAFT_SECTION_KEYS) {
+        if (dirty[k]) continue;
         const before = latest[k] ?? '';
         const after = merged[k] ?? '';
         if (before.trim() !== after.trim()) {
-          suggestionMsgs.push({
+          updateMsgs.push({
             role: 'a',
-            kind: 'suggestion',
-            section: k,
-            html: after,
-            summary: sectionChangeSummary(before, after),
+            kind: 'update',
+            title: SECTION_LABELS[k],
+            note: sectionChangeSummary(before, after),
           });
         }
       }
+
+      const suggestionMsgs: ChatMsg[] = [];
+      for (const k of DRAFT_SECTION_KEYS) {
+        if (!dirty[k]) continue;
+        const html = suggestions[k];
+        if (typeof html !== 'string' || !html.trim()) continue;
+        const before = latest[k] ?? '';
+        if (before.trim() === html.trim()) continue;
+        suggestionMsgs.push({
+          role: 'a',
+          kind: 'suggestion',
+          section: k,
+          html,
+          summary: sectionChangeSummary(before, html),
+        });
+      }
+
       setMessages((m) => [
         ...m,
         { role: 'a', html: escapeHtmlText(replyText) },
+        ...updateMsgs,
         ...suggestionMsgs,
       ]);
 
@@ -863,7 +839,10 @@ export function AssessmentBuilderWorkspace({
         setTimeout(() => setMessages((m) => [...m, { role: 'a', html: CLOSING_HTML }]), 500);
       }
     } catch (err) {
-      console.error(err);
+      console.error('[assessment-builder] refine-section client', err);
+      if (err instanceof Error && err.stack) {
+        console.error('[assessment-builder] refine-section stack', err.stack);
+      }
       setMessages((m) => [
         ...m,
         {
@@ -1318,6 +1297,18 @@ export function AssessmentBuilderWorkspace({
                 </div>
               );
             })}
+            {sending ? (
+              <div className="ab-msg-row ab-msg-row-typing" aria-live="polite" aria-busy="true">
+                <span className="ab-msg-who ab-msg-who-a">SEI Guide</span>
+                <div className="ab-bubble ab-bubble-a">
+                  <span className="ab-typing-dots" aria-hidden>
+                    <span className="ab-typing-dot" />
+                    <span className="ab-typing-dot" />
+                    <span className="ab-typing-dot" />
+                  </span>
+                </div>
+              </div>
+            ) : null}
             <div ref={msgsEndRef} />
           </div>
           <div className="ab-chat-footer">
