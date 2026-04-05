@@ -25,7 +25,11 @@ export async function POST(request: NextRequest) {
         where: { id: versionId, assessment_id: assessmentId },
         include: { assessments: true },
       });
-      if (!v || v.assessments.created_by !== STUB_USER_ID) {
+      if (
+        !v ||
+        v.assessments.created_by !== STUB_USER_ID ||
+        v.assessments.deleted_at !== null
+      ) {
         return { ok: false as const, reason: 'not_found' as const };
       }
 

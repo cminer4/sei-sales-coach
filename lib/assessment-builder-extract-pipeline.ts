@@ -22,7 +22,7 @@ export async function runAssessmentExtractPipeline(params: {
   createdBy: string;
 }): Promise<ExtractPipelineResult> {
   const assessment = await prisma.assessments.findFirst({
-    where: { id: params.assessmentId, created_by: params.createdBy },
+    where: { id: params.assessmentId, created_by: params.createdBy, deleted_at: null },
     include: { assessment_documents: true },
   });
   if (!assessment) {

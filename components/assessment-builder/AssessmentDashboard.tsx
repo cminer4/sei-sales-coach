@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   filterDashboardRows,
   sortDashboardRows,
@@ -26,19 +26,47 @@ function dotClass(name: DashboardRow['dotClass']): string {
 
 export function AssessmentDashboard({ initialRows }: { initialRows: DashboardRow[] }) {
   const router = useRouter();
+  const [rowList, setRowList] = useState(initialRows);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DashboardStatusFilter>('all');
   const [sort, setSort] = useState<DashboardSortOption>('date-desc');
   const [thKey, setThKey] = useState<'name' | 'status' | 'date' | null>('date');
   const [nameDir, setNameDir] = useState<'asc' | 'desc'>('desc');
   const [dateDir, setDateDir] = useState<'asc' | 'desc'>('desc');
+  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
+  const [archivePending, setArchivePending] = useState(false);
 
   const rows = useMemo(() => {
-    const filtered = filterDashboardRows(initialRows, query, statusFilter);
+    const filtered = filterDashboardRows(rowList, query, statusFilter);
     return sortDashboardRows(filtered, sort);
-  }, [initialRows, query, statusFilter, sort]);
+  }, [rowList, query, statusFilter, sort]);
 
-  const hasAnyAssessments = initialRows.length > 0;
+  const hasAnyAssessments = rowList.length > 0;
+
+  useEffect(() => {
+    setRowList(initialRows);
+  }, [initialRows]);
+
+  async function confirmArchive(id: string) {
+    setArchivePending(true);
+    try {
+      const res = await fetch(`/api/assessment-builder/assessments/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const msg =
+          res.status === 404
+            ? 'Assessment not found or already archived.'
+            : 'Could not archive this assessment. Try again.';
+        window.alert(msg);
+        return;
+      }
+      setRowList((prev) => prev.filter((r) => r.id !== id));
+      setConfirmArchiveId(null);
+    } finally {
+      setArchivePending(false);
+    }
+  }
 
   function setFilter(f: DashboardStatusFilter) {
     setStatusFilter(f);
@@ -200,12 +228,15 @@ export function AssessmentDashboard({ initialRows }: { initialRows: DashboardRow
             <th onClick={clickDateColumn} scope="col">
               Last updated <span className="ab-arr">{arrFor('date')}</span>
             </th>
+            <th scope="col" className="ab-th-actions">
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={5} className="ab-tbl-empty">
+              <td colSpan={6} className="ab-tbl-empty">
                 No assessments match your search.
               </td>
             </tr>
@@ -238,6 +269,58 @@ export function AssessmentDashboard({ initialRows }: { initialRows: DashboardRow
                   {r.docCount} doc{r.docCount !== 1 ? 's' : ''}
                 </td>
                 <td className="ab-td-date">{formatDashboardRelativeDate(r.updatedAt)}</td>
+                <td
+                  className="ab-td-actions"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {confirmArchiveId === r.id ? (
+                    <div className="ab-archive-confirm">
+                      <span className="ab-archive-confirm-q">Archive this assessment?</span>
+                      <button
+                        type="button"
+                        className="ab-archive-confirm-btn"
+                        disabled={archivePending}
+                        onClick={() => void confirmArchive(r.id)}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        type="button"
+                        className="ab-archive-cancel-btn"
+                        disabled={archivePending}
+                        onClick={() => setConfirmArchiveId(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="ab-archive-icon-btn"
+                      title="Archive assessment"
+                      aria-label={`Archive assessment ${r.clientName}`}
+                      onClick={() => setConfirmArchiveId(r.id)}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+                  )}
+                </td>
               </tr>
             ))
           )}

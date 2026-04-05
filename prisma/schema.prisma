@@ -187,6 +187,7 @@ model assessments {
   status               String                 @default("new")
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  deleted_at           DateTime?              @map("deleted_at") @db.Timestamptz(6)
   assessment_comments  assessment_comments[]
   assessment_documents assessment_documents[]
   assessment_versions  assessment_versions[]

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const result = await prisma.$transaction(async (tx) => {
       const row = await tx.assessments.findFirst({
-        where: { id: assessmentId, created_by: STUB_USER_ID },
+        where: { id: assessmentId, created_by: STUB_USER_ID, deleted_at: null },
       });
       if (!row) {
         return { ok: false as const, reason: 'not_found' as const };

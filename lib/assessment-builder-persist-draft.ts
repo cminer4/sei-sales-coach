@@ -7,7 +7,7 @@ export async function persistAssessmentDraft(params: {
   draft: DraftContent;
 }): Promise<boolean> {
   const res = await prisma.assessments.updateMany({
-    where: { id: params.assessmentId, created_by: params.createdBy },
+    where: { id: params.assessmentId, created_by: params.createdBy, deleted_at: null },
     data: {
       draft_content: params.draft as object,
       updated_at: new Date(),

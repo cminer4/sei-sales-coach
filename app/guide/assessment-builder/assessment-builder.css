@@ -289,6 +289,95 @@
   white-space: nowrap;
 }
 
+.ab-proj-table thead th.ab-th-actions {
+  width: 1%;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.ab-proj-table thead th.ab-th-actions:hover {
+  color: #aaa;
+}
+
+.ab-td-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.ab-archive-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  transition:
+    color 0.12s,
+    background 0.12s;
+}
+
+.ab-archive-icon-btn:hover {
+  color: #7a4dcc;
+  background: rgba(122, 77, 204, 0.08);
+}
+
+.ab-archive-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 280px;
+  margin-left: auto;
+}
+
+.ab-archive-confirm-q {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+}
+
+.ab-archive-confirm-btn,
+.ab-archive-cancel-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.ab-archive-confirm-btn {
+  background: #7a4dcc;
+  color: #fff;
+  border-color: rgba(122, 77, 204, 0.5);
+}
+
+.ab-archive-confirm-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.ab-archive-cancel-btn {
+  background: #fff;
+  color: #555;
+  border-color: #e0dce8;
+}
+
+.ab-archive-cancel-btn:hover:not(:disabled) {
+  background: #f7f5fb;
+}
+
+.ab-archive-confirm-btn:disabled,
+.ab-archive-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .ab-tbl-empty {
   padding: 48px 16px;
   font-size: 13px;

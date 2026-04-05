@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const row = await prisma.assessments.findFirst({
-      where: { id: assessmentId, created_by: STUB_USER_ID },
+      where: { id: assessmentId, created_by: STUB_USER_ID, deleted_at: null },
     });
     if (!row) {
       return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });

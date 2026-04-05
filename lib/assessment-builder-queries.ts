@@ -7,7 +7,7 @@ import type { DraftContent } from '@/lib/assessment-builder-draft-types';
 /** Dashboard list: Phase 1 stub user only (Decision 7). */
 export async function getDashboardAssessments() {
   const rows = await prisma.assessments.findMany({
-    where: { created_by: STUB_USER_ID },
+    where: { created_by: STUB_USER_ID, deleted_at: null },
     orderBy: { updated_at: 'desc' },
     include: {
       _count: { select: { assessment_documents: true } },
@@ -27,7 +27,7 @@ export async function getDashboardAssessments() {
 
 export async function getAssessmentWorkspaceById(id: string) {
   const row = await prisma.assessments.findFirst({
-    where: { id, created_by: STUB_USER_ID },
+    where: { id, created_by: STUB_USER_ID, deleted_at: null },
     include: {
       assessment_documents: { select: { id: true, filename: true } },
     },
@@ -61,7 +61,7 @@ export type PublishedViewData = {
 
 export async function getPublishedViewData(assessmentId: string): Promise<PublishedViewData | null> {
   const row = await prisma.assessments.findFirst({
-    where: { id: assessmentId, created_by: STUB_USER_ID },
+    where: { id: assessmentId, created_by: STUB_USER_ID, deleted_at: null },
     include: {
       assessment_versions: { orderBy: { created_at: 'desc' } },
     },
