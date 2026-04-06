@@ -22,10 +22,10 @@ export default function AssessmentBuilderLayout({
 }) {
   return (
     <div
-      className={`${dmSans.variable} ${dmSerif.variable} ab-wrap flex h-screen w-full overflow-hidden`}
+      className={`${dmSans.variable} ${dmSerif.variable} ab-wrap grid h-screen w-full grid-cols-[56px_minmax(0,1fr)] overflow-hidden`}
     >
       <AssessmentBuilderSidenav />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f6f4]">
+      <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden overflow-x-hidden bg-[#f7f6f4]">
         {children}
       </div>
     </div>

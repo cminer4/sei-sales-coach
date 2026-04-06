@@ -1490,7 +1490,7 @@ export function AssessmentBuilderWorkspace({
                 }}
                 aria-hidden={!documentPainted}
               >
-                <div className="ab-escroll">
+                <div className="ab-doc-canvas-wrap">
                   <div className="ab-tbar">
                     <button
                       type="button"
@@ -1559,15 +1559,17 @@ export function AssessmentBuilderWorkspace({
                       </button>
                     </div>
                   </div>
-                  <div className="ab-docpage">
-                    <div
-                      ref={editorRef}
-                      className="ab-doc-editor"
-                      contentEditable={false}
-                      spellCheck={false}
-                      onInput={onEditorInput}
-                      onKeyDown={onEditorKeyDown}
-                    />
+                  <div className="ab-escroll">
+                    <div className="ab-docpage">
+                      <div
+                        ref={editorRef}
+                        className="ab-doc-editor"
+                        contentEditable={false}
+                        spellCheck={false}
+                        onInput={onEditorInput}
+                        onKeyDown={onEditorKeyDown}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
